@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:kaufi_allert_v2/pages/offer_detail.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 enum FilterType {
   all,
@@ -25,13 +26,9 @@ enum SortOrder {
   descending,
 }
 
-// ignore: must_be_immutable
 class OffersPage extends StatefulWidget {
-  static var favoriteOffers = <Product>[];
-  static List<Product> products = [];
 
-  // ignore: prefer_const_constructors_in_immutables
-  OffersPage({super.key});
+  const OffersPage({super.key});
 
   @override
   State<OffersPage> createState() => _OffersPageState();
@@ -42,23 +39,23 @@ class _OffersPageState extends State<OffersPage> {
   FilterType currentFilter = FilterType.all;
   SortOrder currentSortOrder = SortOrder.none;
   List<Product> filteredProducts = [];
+  List<Product> products = [];
+  late SharedPreferences prefs;
+  initializeSharedPreferences() async {
+    prefs = await SharedPreferences.getInstance();
+  }
 
   final Map<FilterType, List<Product>> _filteredProductsCache = {};
 
   @override
   void initState() {
-    fetchData().then((value) {
+    super.initState();
+    fetchManager().then((value) {
       setState(() {
-        OffersPage.products = value;
-        filteredProducts = OffersPage.products;
+        products = value;
+        filteredProducts = products;
       });
     });
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 
   @override
@@ -108,7 +105,7 @@ class _OffersPageState extends State<OffersPage> {
                 },
               suggestionsBuilder: (context, controller) {
                 List<ListTile> listTiles = [];
-                final filteredProducts = OffersPage.products.where((product) {
+                final filteredProducts = products.where((product) {
                   if (controller.text.isEmpty) {
                     return false;
                   }
@@ -159,9 +156,9 @@ class _OffersPageState extends State<OffersPage> {
                 ],
               ),
             ),
-            if(OffersPage.products.isEmpty)
+            if(products.isEmpty)
             FutureBuilder<List<Product>>(
-              future: fetchData(),
+              future: fetchManager(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const CircularProgressIndicator();
@@ -172,10 +169,10 @@ class _OffersPageState extends State<OffersPage> {
                     return const Text('No offers found');
                   } else {
                     for (var product in snapshot.data!) {
-                      if(OffersPage.products.any((p) => p.title == product.title)) {
+                      if(products.any((p) => p.title == product.title)) {
                         continue; // Skip if product already exists
                       }
-                      OffersPage.products.add(product);
+                      products.add(product);
                     }
                     return SizedBox(
                       width: MediaQuery.of(context).size.width - 10,
@@ -187,9 +184,9 @@ class _OffersPageState extends State<OffersPage> {
                           mainAxisSpacing: 8.0,
                           childAspectRatio: 0.8,
                         ),
-                        itemCount: OffersPage.products.length,
+                        itemCount: products.length,
                         itemBuilder: (context, index) {
-                        Product product = OffersPage.products[index];
+                        Product product = products[index];
                         return offerCard(product, context);
                         },
                       ),
@@ -221,6 +218,19 @@ class _OffersPageState extends State<OffersPage> {
     );
   }
 
+  Future<List<Product>> fetchManager() async {
+    await initializeSharedPreferences();
+    //prefs.setString('favoriteOffers', "[]");
+    List<Product> cachedOffers = await getCachedOffers();
+    if (cachedOffers.isNotEmpty && prefs.getString('offersDate') != null && DateTime.now().difference(DateTime.parse(prefs.getString('offersDate')!)).inDays < 7) {
+      products = cachedOffers;
+      filteredProducts = products;
+      return cachedOffers;
+    } else {
+      return fetchData();
+    }
+  }
+
   void _applyFilter(FilterType filter) {
     setState(() {
       currentFilter = filter;
@@ -232,7 +242,7 @@ class _OffersPageState extends State<OffersPage> {
       }
       
       // Calculate and cache results
-      filteredProducts = OffersPage.products.where((product) {
+      filteredProducts = products.where((product) {
         return filter == FilterType.all || 
                 filter.toString().split('.').last == product.category;
       }).toList();
@@ -242,105 +252,220 @@ class _OffersPageState extends State<OffersPage> {
   }
 
   Widget _buildFilterChip(String label, FilterType filterType) {
-  return FilterChip(
-    label: Text(
-      label,
-      style: TextStyle(
-        color: (currentFilter == filterType ? Colors.black : Colors.white),
+    return FilterChip(
+      label: Text(
+        label,
+        style: TextStyle(
+          color: (currentFilter == filterType ? Colors.black : Colors.white),
+        ),
       ),
-    ),
-    selected: currentFilter == filterType,
-    onSelected: (bool selected) {
-      if (selected) {
-        _applyFilter(filterType);
-      }
-    },
-    backgroundColor: const Color(0xFF412a2b),
-    selectedColor: const Color.fromARGB(255, 120, 80, 80),
-    checkmarkColor: Colors.black,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(10.0),
-      side: const BorderSide(color: Colors.black, width: 0),
-    ),
-  );
-}
-}
+      selected: currentFilter == filterType,
+      onSelected: (bool selected) {
+        if (selected) {
+          _applyFilter(filterType);
+        }
+      },
+      backgroundColor: const Color(0xFF412a2b),
+      selectedColor: const Color.fromARGB(255, 120, 80, 80),
+      checkmarkColor: Colors.black,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10.0),
+        side: const BorderSide(color: Colors.black, width: 0),
+      ),
+    );
+  }
 
-Future<List<Product>> fetchData() async {
-  var selectedOffers = ["02_Obst__Gemuese__Pflanzen", "01_Fleisch__Gefluegel__Wurst", "01a_Frischer_Fisch", "03_Molkereiprodukte__Fette", "04_Tiefkuehlkost", "05_Feinkost__Konserven", "06_Grundnahrungsmittel", "07_Kaffee__Tee__Suesswaren__Knabberartikel", "08_Getraenke__Spirituosen", "708_Backshop"];
-  List<Product> offersFinal = <Product>[];
-  var url = Uri.https('app.kaufland.net', '/data/api/v5/offers/DE3940');
-  var response = await http.get(url, headers: {"Authorization": "Basic S0lTLUtMQVBQOkRyZWNrc3pldWdfMzUyOS1BY2h0c3BubmVy"});
-  List<dynamic> jsonObject = jsonDecode(response.body);
-  var categories = jsonObject[0]['categories'];
-  for (int i = 0; i < categories.length; i++) {
-    String title = categories[i]['name'];
-    for (String selectedOffersTitle in selectedOffers) {
-      if (title == selectedOffersTitle) {
-        List<dynamic> offers = categories[i]['offers'];
-        for (var offer in offers) {
-          String detailTitle = "";
-          String currentPrice = "";
-          String basePrice = "";
-          String oldPrice = "";
-          String imageUrl = "";
-          String description = "";
-          String category = "";
-          String unit = "";
-          //print("Processing offer: $offer");
-          if ((offer['discount'] > 0 || selectedOffersTitle == "02_Obst__Gemuese__Pflanzen") && offer['discount'] != null) {
-            String discount = "${offer['discount']}%";
-            detailTitle = offer['title'] ?? '';
-            detailTitle = "$detailTitle ${offer['subtitle'] ?? ''}";
-            detailTitle = detailTitle.replaceAll("/", " ").trim();
-            currentPrice = "${offer['formattedPrice'] ?? '0.00'}€";
-            basePrice = offer['basePrice'] ?? '';
-            oldPrice = "${offer['oldPrice'] ?? '0.00'}€";
-            imageUrl = offer['listImage'] ?? 'https://picsum.photos/250?image=9';
-            description = offer['detailDescription'] ?? '';
-            switch (selectedOffersTitle) {
-              case "02_Obst__Gemuese__Pflanzen":
-                category = "fruitAndVegetables";
-                break;
-              case "01_Fleisch__Gefluegel__Wurst":
-                category = "meatAndPoultry";
-                break;
-              case "01a_Frischer_Fisch":
-                category = "fish";
-                break;
-              case "03_Molkereiprodukte__Fette":
-                category = "dairyProducts";
-                break;
-              case "04_Tiefkuehlkost":
-                category = "frozenFood";
-                break;
-              case "05_Feinkost__Konserven":
-                category = "cannedGoods";
-                break;
-              case "06_Grundnahrungsmittel":
-                category = "stapleFoods";
-                break;
-              case "07_Kaffee__Tee__Suesswaren__Knabberartikel":
-                category = "coffeeTeaSweetsSnacks";
-                break;
-              case "08_Getraenke__Spirituosen":
-                category = "beverages";
-                break;
-              case "708_Backshop":
-                category = "bakery";
-                break;
-            }
-            unit = offer['unit'] ?? '';
-            if(!offersFinal.contains(Product(title: detailTitle, price: currentPrice, discount: discount, basePrice: basePrice, oldPrice: oldPrice, imageUrl: imageUrl, description: description, category: category, unit: unit))) {
-              offersFinal.add(Product(title: detailTitle, price: currentPrice, discount: discount, basePrice: basePrice, oldPrice: oldPrice, imageUrl: imageUrl, description: description, category: category, unit: unit));
+  Future<List<Product>> fetchData() async {
+    //print("Fetching offers from API");
+    var selectedOffers = ["02_Obst__Gemuese__Pflanzen", "01_Fleisch__Gefluegel__Wurst", "01a_Frischer_Fisch", "03_Molkereiprodukte__Fette", "04_Tiefkuehlkost", "05_Feinkost__Konserven", "06_Grundnahrungsmittel", "07_Kaffee__Tee__Suesswaren__Knabberartikel", "08_Getraenke__Spirituosen", "708_Backshop"];
+    List<Product> offersFinal = <Product>[];
+    var url = Uri.https('app.kaufland.net', '/data/api/v5/offers/DE3940');
+    var response = await http.get(url, headers: {"Authorization": "Basic S0lTLUtMQVBQOkRyZWNrc3pldWdfMzUyOS1BY2h0c3BubmVy"});
+    List<dynamic> jsonObject = jsonDecode(response.body);
+    prefs.setString('offersDate', DateTime.parse(jsonObject[0]['categories'][0]['dateFrom']).toIso8601String());
+    var categories = jsonObject[0]['categories'];
+    for (int i = 0; i < categories.length; i++) {
+      String title = categories[i]['name'];
+      for (String selectedOffersTitle in selectedOffers) {
+        if (title == selectedOffersTitle) {
+          List<dynamic> offers = categories[i]['offers'];
+          for (var offer in offers) {
+            String detailTitle = "";
+            String currentPrice = "";
+            String basePrice = "";
+            String oldPrice = "";
+            String imageUrl = "";
+            String description = "";
+            String category = "";
+            String unit = "";
+            //print("Processing offer: $offer");
+            if ((offer['discount'] > 0 || selectedOffersTitle == "02_Obst__Gemuese__Pflanzen") && offer['discount'] != null) {
+              String discount = "${offer['discount']}%";
+              detailTitle = offer['title'] ?? '';
+              detailTitle = "$detailTitle ${offer['subtitle'] ?? ''}";
+              detailTitle = detailTitle.replaceAll("/", " ").trim();
+              currentPrice = "${offer['formattedPrice'] ?? '0.00'}€";
+              basePrice = offer['basePrice'] ?? '';
+              oldPrice = "${offer['oldPrice'] ?? '0.00'}€";
+              imageUrl = offer['listImage'] ?? 'https://picsum.photos/250?image=9';
+              description = offer['detailDescription'] ?? '';
+              unit = offer['unit'] ?? '';
+              switch (selectedOffersTitle) {
+                case "02_Obst__Gemuese__Pflanzen":
+                  category = "fruitAndVegetables";
+                  break;
+                case "01_Fleisch__Gefluegel__Wurst":
+                  category = "meatAndPoultry";
+                  break;
+                case "01a_Frischer_Fisch":
+                  category = "fish";
+                  break;
+                case "03_Molkereiprodukte__Fette":
+                  category = "dairyProducts";
+                  break;
+                case "04_Tiefkuehlkost":
+                  category = "frozenFood";
+                  break;
+                case "05_Feinkost__Konserven":
+                  category = "cannedGoods";
+                  break;
+                case "06_Grundnahrungsmittel":
+                  category = "stapleFoods";
+                  break;
+                case "07_Kaffee__Tee__Suesswaren__Knabberartikel":
+                  category = "coffeeTeaSweetsSnacks";
+                  break;
+                case "08_Getraenke__Spirituosen":
+                  category = "beverages";
+                  break;
+                case "708_Backshop":
+                  category = "bakery";
+                  break;
+              }
+              if(!offersFinal.contains(Product(title: detailTitle, price: currentPrice, discount: discount, basePrice: basePrice, oldPrice: oldPrice, imageUrl: imageUrl, description: description, category: category, unit: unit))) {
+                offersFinal.add(Product(title: detailTitle, price: currentPrice, discount: discount, basePrice: basePrice, oldPrice: oldPrice, imageUrl: imageUrl, description: description, category: category, unit: unit));
+              }
             }
           }
         }
       }
     }
+
+    prefs.setString('offersFinal', json.encode(offersFinal.map((product) => product.toJson()).toList()));
+    return offersFinal;
   }
-  return offersFinal;
+
+  Future<List<Product>> getCachedOffers() async {
+    //print("Fetching cached offers from SharedPreferences");
+    String? cachedData = prefs.getString('offersFinal');
+    if (cachedData != null) {
+      List<dynamic> jsonList = json.decode(cachedData);
+      return jsonList.map((json) => Product(
+        title: json['title'],
+        price: json['price'],
+        discount: json['discount'],
+        basePrice: json['basePrice'],
+        oldPrice: json['oldPrice'],
+        imageUrl: json['imageUrl'],
+        description: json['description'],
+        category: json['category'],
+        unit: json['unit']
+      )).toList();
+    }
+    return [];
+  }
 }
+
+Widget offerCard(Product product, BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.pushNamed(
+          context, 
+          '/offerDetail',
+          arguments: product,
+        );
+      },
+      child: SizedBox(
+        width: (MediaQuery.of(context).size.width - 20) / 2,
+        height: MediaQuery.of(context).size.height * 0.5,
+        child: Card(
+          color: const Color(0xFF1f1415),
+          child: Column(
+            children: [
+              Stack(
+                children: [
+                  Center(
+                    child: Hero(
+                      tag: product.imageUrl,
+                      child: Container(
+                        width: (MediaQuery.of(context).size.width - 20) / 2,
+                        height: MediaQuery.of(context).size.height * 0.2,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                        child: Center(
+                          child: SizedBox(
+                            width: (MediaQuery.of(context).size.width - 20) / 2 - 20,
+                            height: MediaQuery.of(context).size.height * 0.2 - 20,
+                            child: CachedNetworkImage(
+                              imageUrl: product.imageUrl,
+                              fit: BoxFit.contain,
+                              placeholder: (context, url) => CircularProgressIndicator(),
+                              errorWidget: (context, url, error) => Icon(Icons.broken_image, color: Colors.grey),
+                            )
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if(int.parse(product.discount.replaceAll("%", "").replaceAll("-", "").trim()) > 0)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(5.0),
+                      ),
+                      child: Text(
+                        "-${product.discount}",
+                        style: const TextStyle(color: Colors.white, fontSize: 15),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        product.title,
+                        style: const TextStyle(color: Colors.white, fontSize: 16),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 23.0),
+                      child: Text(
+                        product.price,
+                        style: const TextStyle(color: Colors.amber, fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
 class Product {
   final String title;
@@ -364,95 +489,29 @@ class Product {
     required this.category,
     required this.unit,
   });
-}
 
-Widget offerCard(Product product, BuildContext context) {
-  return GestureDetector(
-    onTap: () {
-      Navigator.pushNamed(
-        context, 
-        '/offerDetail',
-        arguments: product,
-      );
-    },
-    child: SizedBox(
-      width: (MediaQuery.of(context).size.width - 20) / 2,
-      height: MediaQuery.of(context).size.height * 0.5,
-      child: Card(
-        color: const Color(0xFF1f1415),
-        child: Column(
-          children: [
-            Stack(
-              children: [
-                Center(
-                  child: Hero(
-                    tag: product.imageUrl,
-                    child: Container(
-                      width: (MediaQuery.of(context).size.width - 20) / 2,
-                      height: MediaQuery.of(context).size.height * 0.2,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10.0),
-                      ),
-                      child: Center(
-                        child: SizedBox(
-                          width: (MediaQuery.of(context).size.width - 20) / 2 - 20,
-                          height: MediaQuery.of(context).size.height * 0.2 - 20,
-                          child: CachedNetworkImage(
-                            imageUrl: product.imageUrl,
-                            fit: BoxFit.contain,
-                            placeholder: (context, url) => CircularProgressIndicator(),
-                            errorWidget: (context, url, error) => Icon(Icons.broken_image, color: Colors.grey),
-                          )
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                if(int.parse(product.discount.replaceAll("%", "").replaceAll("-", "").trim()) > 0)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(5.0),
-                    ),
-                    child: Text(
-                      "-${product.discount}",
-                      style: const TextStyle(color: Colors.white, fontSize: 15),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      product.title,
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 23.0),
-                    child: Text(
-                      product.price,
-                      style: const TextStyle(color: Colors.amber, fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
+  Product.fromJson(Map<String, dynamic> json)
+      : title = json['title'],
+        price = json['price'],
+        discount = json['discount'],
+        basePrice = json['basePrice'],
+        oldPrice = json['oldPrice'],
+        imageUrl = json['imageUrl'],
+        description = json['description'],
+        category = json['category'],
+        unit = json['unit'];
+
+  Map<String, dynamic> toJson() {
+    return {
+      'title': title,
+      'price': price,
+      'discount': discount,
+      'basePrice': basePrice,
+      'oldPrice': oldPrice,
+      'imageUrl': imageUrl,
+      'description': description,
+      'category': category,
+      'unit': unit,
+    };
+  }
 }

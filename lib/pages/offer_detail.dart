@@ -1,11 +1,50 @@
+import 'dart:convert';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:kaufi_allert_v2/pages/offers_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class OfferDetail extends StatelessWidget {
+class OfferDetail extends StatefulWidget {
   const OfferDetail({super.key, required this.product});
 
   final Product product;
+
+  @override
+  State<OfferDetail> createState() => _OfferDetailState();
+}
+
+class _OfferDetailState extends State<OfferDetail> {
+  late SharedPreferences prefs;
+  List<Product> favoriteOffers = [];
+
+  getSharedPreferences() async {
+    prefs = await SharedPreferences.getInstance();
+  }
+
+  Future<List<Product>> initializeFavoriteOffers() async {
+    favoriteOffers = await getFavoriteOffers();
+    setState(() {});
+    return favoriteOffers;
+  }
+
+  Future<void> initializeSharedPreferences() async {
+    await getSharedPreferences();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    initializeSharedPreferences().then((_) {
+      initializeFavoriteOffers();
+    });
+  }
+
+  @override
+  void dispose() {
+    favoriteOffers.clear();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,22 +59,51 @@ class OfferDetail extends StatelessWidget {
             builder: (BuildContext context, StateSetter setState) {
               return IconButton(
                 icon: Icon(
-                  OffersPage.favoriteOffers.contains(product) ? Icons.favorite : Icons.favorite_border,
+                  favoriteOffers.firstWhere(
+                      (product) => product.title == widget.product.title,
+                      orElse: () => Product(
+                        title: '',
+                        price: '',
+                        discount: '',
+                        basePrice: '',
+                        oldPrice: '',
+                        imageUrl: '',
+                        description: '',
+                        category: '',
+                        unit: '',
+                      ),
+                    ).title.isNotEmpty ? Icons.favorite : Icons.favorite_border,
                   color: Colors.red,
                   size: 40,
                 ),
                 onPressed: () {
                   setState(() {
-                    if (OffersPage.favoriteOffers.contains(product)) {
-                      OffersPage.favoriteOffers.remove(product);
+                    Product existingProduct = favoriteOffers.firstWhere(
+                      (product) => product.title == widget.product.title,
+                      orElse: () => Product(
+                        title: '',
+                        price: '',
+                        discount: '',
+                        basePrice: '',
+                        oldPrice: '',
+                        imageUrl: '',
+                        description: '',
+                        category: '',
+                        unit: '',
+                      ),
+                    );
+                    if (existingProduct.title.isNotEmpty) {
+                      favoriteOffers.remove(existingProduct);
+                      prefs.setString('favoriteOffers', json.encode(favoriteOffers.map((product) => product.toJson()).toList()));
                     } else {
-                      OffersPage.favoriteOffers.add(product);
+                      favoriteOffers.add(widget.product);
+                      prefs.setString('favoriteOffers', json.encode(favoriteOffers.map((product) => product.toJson()).toList()));
                     }
-                    });
-                    ScaffoldMessenger.of(context).showSnackBar(
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                      OffersPage.favoriteOffers.contains(product)
+                      favoriteOffers.contains(widget.product)
                         ? 'Added to favorites'
                         : 'Removed from favorites',
                       style: TextStyle(color: Colors.white),
@@ -56,7 +124,7 @@ class OfferDetail extends StatelessWidget {
             const SizedBox(height: 20),
             Center(
               child: Hero(
-                tag: product.imageUrl,
+                tag: widget.product.imageUrl,
                 child: Container(
                   width: MediaQuery.of(context).size.width - 20,
                   height: MediaQuery.of(context).size.height * 0.5,
@@ -69,7 +137,7 @@ class OfferDetail extends StatelessWidget {
                       width: MediaQuery.of(context).size.width - 40,
                       height: MediaQuery.of(context).size.height * 0.5 - 20,
                       child: CachedNetworkImage(
-                        imageUrl: product.imageUrl,
+                        imageUrl: widget.product.imageUrl,
                         fit: BoxFit.contain,
                         placeholder: (context, url) => CircularProgressIndicator(),
                         errorWidget: (context, url, error) => Icon(Icons.broken_image, color: Colors.grey),
@@ -87,19 +155,19 @@ class OfferDetail extends StatelessWidget {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      product.title,
+                      widget.product.title,
                       style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
                       textAlign: TextAlign.start,
                       overflow: TextOverflow.visible,
                     ),
                   ),
                   const SizedBox(height: 10),
-                  if (product.description.contains("aus eigener Herstellung"))
+                  if (widget.product.description.contains("aus eigener Herstellung"))
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          product.description.replaceAll("aus eigener Herstellung", "").trim().replaceAll(RegExp(r',(?!\s)'), ''),
+                          widget.product.description.replaceAll("aus eigener Herstellung", "").trim().replaceAll(RegExp(r',(?!\s)'), ''),
                           style: const TextStyle(color: Colors.white, fontSize: 14),
                           textAlign: TextAlign.start,
                           overflow: TextOverflow.visible,
@@ -121,7 +189,7 @@ class OfferDetail extends StatelessWidget {
                     )
                   else
                     Text(
-                      product.description,
+                      widget.product.description,
                       style: const TextStyle(color: Colors.white, fontSize: 14),
                       textAlign: TextAlign.start,
                       overflow: TextOverflow.visible,
@@ -135,7 +203,7 @@ class OfferDetail extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.only(right: 10.0),
                 child: Text(
-                  product.unit,
+                  widget.product.unit,
                   style: const TextStyle(color: Colors.white, fontSize: 16, fontStyle: FontStyle.italic),
                   textAlign: TextAlign.start,
                   overflow: TextOverflow.visible,
@@ -148,7 +216,7 @@ class OfferDetail extends StatelessWidget {
                   child: Align(
                     alignment: Alignment.centerRight,
                     child: Text(
-                      int.parse(product.discount.replaceAll("%", "").replaceAll("-", "").trim()) > 0 ? "-${product.discount}" : "",
+                      int.parse(widget.product.discount.replaceAll("%", "").replaceAll("-", "").trim()) > 0 ? "-${widget.product.discount}" : "",
                       style: const TextStyle(color: Colors.red, fontSize: 20, fontWeight: FontWeight.bold),
                       textAlign: TextAlign.start,
                       overflow: TextOverflow.visible,
@@ -157,7 +225,7 @@ class OfferDetail extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  product.price,
+                  widget.product.price,
                   style: const TextStyle(color: Colors.amber, fontSize: 30, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.start,
                   overflow: TextOverflow.visible,
@@ -169,5 +237,25 @@ class OfferDetail extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<List<Product>> getFavoriteOffers() async {
+    //print("Fetching favorite offers from SharedPreferences");
+    String? favoriteOffers = prefs.getString('favoriteOffers');
+    if (favoriteOffers != null && favoriteOffers.isNotEmpty) {
+      List<dynamic> jsonList = jsonDecode(favoriteOffers);
+      return jsonList.map((json) => Product(
+        title: json['title'],
+        price: json['price'],
+        discount: json['discount'],
+        basePrice: json['basePrice'],
+        oldPrice: json['oldPrice'],
+        imageUrl: json['imageUrl'],
+        description: json['description'],
+        category: json['category'],
+        unit: json['unit']
+      )).toList();
+    }
+    return [];
   }
 }

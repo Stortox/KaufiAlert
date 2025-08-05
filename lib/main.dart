@@ -3,7 +3,7 @@ import 'package:kaufi_allert_v2/pages/main_screen.dart';
 import 'package:kaufi_allert_v2/pages/offer_detail.dart';
 import 'package:kaufi_allert_v2/pages/offers_page.dart';
 
-void main() {
+void main() async {
   runApp(MainApp());
 }
 
