@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:kaufi_allert_v2/pages/offer_detail.dart';
+import 'package:kaufi_allert_v2/pages/settings_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum FilterType {
@@ -83,23 +84,23 @@ class _OffersPageState extends State<OffersPage> {
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10.0),
                   child: SearchBar(
-                  controller: controller,
-                  padding: const WidgetStatePropertyAll<EdgeInsets>(
-                    EdgeInsets.symmetric(horizontal: 16.0),
-                  ),
-                  hintText: 'Search',
-                  backgroundColor: WidgetStateProperty.all(const Color(0xFF412a2b)),
-                  textStyle: WidgetStateProperty.all(const TextStyle(color: Colors.white)),
-                  onTap: () {
-                    controller.openView();
-                  },
-                  onChanged: (_) {
-                    controller.openView();
-                  },
-                  onTapOutside: (_) {
-                    FocusScope.of(context).unfocus();
-                  },
-                  leading: Icon(Icons.search, color: Colors.white),
+                    controller: controller,
+                    padding: const WidgetStatePropertyAll<EdgeInsets>(
+                      EdgeInsets.symmetric(horizontal: 16.0),
+                    ),
+                    hintText: 'Search',
+                    backgroundColor: WidgetStateProperty.all(const Color(0xFF412a2b)),
+                    textStyle: WidgetStateProperty.all(const TextStyle(color: Colors.white)),
+                    onTap: () {
+                      controller.openView();
+                    },
+                    onChanged: (_) {
+                      controller.openView();
+                    },
+                    onTapOutside: (_) {
+                      FocusScope.of(context).unfocus();
+                    },
+                    leading: Icon(Icons.search, color: Colors.white),
                   ),
                 );
                 },
@@ -220,9 +221,16 @@ class _OffersPageState extends State<OffersPage> {
 
   Future<List<Product>> fetchManager() async {
     await initializeSharedPreferences();
+    //prefs.setString('stores', "");
+    if(prefs.getString('stores') == null || prefs.getString('stores')!.isEmpty) {
+      fetchStores();
+    }
     //prefs.setString('favoriteOffers', "[]");
+    if(prefs.getString('storeId') == null || prefs.getString('storeId')!.isEmpty) {
+      prefs.setString('storeId', 'DE3940');
+    }
     List<Product> cachedOffers = await getCachedOffers();
-    if (cachedOffers.isNotEmpty && prefs.getString('offersDate') != null && DateTime.now().difference(DateTime.parse(prefs.getString('offersDate')!)).inDays < 7) {
+    if (cachedOffers.isNotEmpty && prefs.getString('offersDate${prefs.getString('storeId') ?? 'DE3940'}') != null && DateTime.now().difference(DateTime.parse(prefs.getString('offersDate${prefs.getString('storeId') ?? 'DE3940'}')!)).inDays < 7) {
       products = cachedOffers;
       filteredProducts = products;
       return cachedOffers;
@@ -279,10 +287,10 @@ class _OffersPageState extends State<OffersPage> {
     //print("Fetching offers from API");
     var selectedOffers = ["02_Obst__Gemuese__Pflanzen", "01_Fleisch__Gefluegel__Wurst", "01a_Frischer_Fisch", "03_Molkereiprodukte__Fette", "04_Tiefkuehlkost", "05_Feinkost__Konserven", "06_Grundnahrungsmittel", "07_Kaffee__Tee__Suesswaren__Knabberartikel", "08_Getraenke__Spirituosen", "708_Backshop"];
     List<Product> offersFinal = <Product>[];
-    var url = Uri.https('app.kaufland.net', '/data/api/v5/offers/DE3940');
+    var url = Uri.https('app.kaufland.net', '/data/api/v5/offers/${prefs.getString('storeId') ?? 'DE3940'}');
     var response = await http.get(url, headers: {"Authorization": "Basic S0lTLUtMQVBQOkRyZWNrc3pldWdfMzUyOS1BY2h0c3BubmVy"});
     List<dynamic> jsonObject = jsonDecode(response.body);
-    prefs.setString('offersDate', DateTime.parse(jsonObject[0]['categories'][0]['dateFrom']).toIso8601String());
+    prefs.setString('offersDate${prefs.getString('storeId') ?? 'DE3940'}', DateTime.parse(jsonObject[0]['categories'][0]['dateFrom']).toIso8601String());
     var categories = jsonObject[0]['categories'];
     for (int i = 0; i < categories.length; i++) {
       String title = categories[i]['name'];
@@ -351,13 +359,63 @@ class _OffersPageState extends State<OffersPage> {
       }
     }
 
-    prefs.setString('offersFinal', json.encode(offersFinal.map((product) => product.toJson()).toList()));
+    prefs.setString('offersFinal${prefs.getString('storeId') ?? 'DE3940'}', json.encode(offersFinal.map((product) => product.toJson()).toList()));
     return offersFinal;
+  }
+
+  void fetchStores() async {
+    var url = Uri.https('app.kaufland.net', '/data/api/v2/stores');
+    var response = await http.get(url, headers: {"Authorization": "Basic S0lTLUtMQVBQOkRyZWNrc3pldWdfMzUyOS1BY2h0c3BubmVy"});
+    
+    List<dynamic> storeList = json.decode(response.body);
+    List<Store> stores = [];
+    
+    for (var storeData in storeList) {
+      String address = "${storeData['street']}, ${storeData['city']}";
+      
+      String openingHoursStr = "";
+      if (storeData['openingHours'] != null) {
+        List<dynamic> hours = storeData['openingHours'];
+        for (var hour in hours) {
+          String weekday = hour['weekday'];
+          int open = hour['open'];
+          int close = hour['close'];
+
+          String openTime = "${open ~/ 100}:${open % 100 == 0 ? '00' : open % 100}";
+          String closeTime = "${close ~/ 100}:${close % 100 == 0 ? '00' : close % 100}";
+          
+          openingHoursStr += "$weekday: $openTime-$closeTime, ";
+        }
+
+        if (openingHoursStr.isNotEmpty) {
+          openingHoursStr = openingHoursStr.substring(0, openingHoursStr.length - 2);
+        }
+      }
+      
+      stores.add(Store(
+        storeId: storeData['storeId'],
+        name: storeData['name'],
+        address: address,
+        openingHours: openingHoursStr,
+        position: [storeData['latitude'], storeData['longitude']],
+        country: storeData['country'],
+      ));
+    }
+    
+    prefs.setString('stores', json.encode(stores.map((store) => {
+      'storeId': store.storeId,
+      'name': store.name,
+      'address': store.address,
+      'openingHours': store.openingHours,
+      'latitude': store.position[0],
+      'longitude': store.position[1],
+      'country': store.country,
+    }).toList()));
   }
 
   Future<List<Product>> getCachedOffers() async {
     //print("Fetching cached offers from SharedPreferences");
-    String? cachedData = prefs.getString('offersFinal');
+    String? cachedData = prefs.getString('offersFinal${prefs.getString('storeId') ?? 'DE3940'}');
     if (cachedData != null) {
       List<dynamic> jsonList = json.decode(cachedData);
       return jsonList.map((json) => Product(

@@ -10,8 +10,9 @@ dependencies:
   flutter:
     sdk: flutter
   http: ^1.4.0
-  cached_network_image: ^3.3.0
+  cached_network_image: ^3.4.1
   shared_preferences: ^2.0.13
+  geolocator: ^14.0.2
 
 dev_dependencies:
   flutter_test:
