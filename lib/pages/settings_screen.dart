@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:kaufi_allert_v2/pages/select_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
 class SettingsPage extends StatefulWidget {
@@ -43,9 +44,17 @@ class _SettingsPageState extends State<SettingsPage> {
     super.initState();
     getClosestStores();
     getUserPosition().then((position) {
-      userPosition = position;
-      setState(() {});
+      if (mounted) {
+        setState(() {
+          userPosition = position;
+        });
+      }
     });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   @override
@@ -55,7 +64,6 @@ class _SettingsPageState extends State<SettingsPage> {
       appBar: AppBar(
         title: const Text("Settings", style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF1f1415),
-        iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,
       ),
       body: Column(
@@ -65,7 +73,7 @@ class _SettingsPageState extends State<SettingsPage> {
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Text("Selected store", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold))),
+              child: Text("Selected Store", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold))),
           ),
           FutureBuilder<Store>(
             future: getSelectedStore(),
@@ -80,7 +88,7 @@ class _SettingsPageState extends State<SettingsPage> {
               } else {
                 return SizedBox(
                   width: MediaQuery.of(context).size.width - 10,
-                  height: 90,
+                  height: 80,
                   child: ListView.builder(
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: 1,
@@ -94,90 +102,143 @@ class _SettingsPageState extends State<SettingsPage> {
               }
             },
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text("Choose your preferred store", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold))),
-          ),
-          const SizedBox(height: 10),
-          ListView(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 4.0),
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: ListTile(
-                  title: const Text("Use current location", style: TextStyle(color: Colors.white)),
-                  leading: Container(
-                        width: 50,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF412a2b), // Background color for the icon
-                          borderRadius: BorderRadius.circular(8), // Rounded corners
-                        ),
-                        padding: const EdgeInsets.all(8), // Padding inside the container
-                        child: const Icon(Icons.location_on_outlined, color: Colors.white),
-                    ),
+          GestureDetector(
+            onTap: () {
+              _openSelectStore(context);
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 5.0),
+              child: ListTile(
+                title: const Text("Choose other store", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                leading: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF412a2b), // Background color for the icon
+                    borderRadius: BorderRadius.circular(8), // Rounded corners
                   ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: ListTile(
-                  title: const Text("Search for a store", style: TextStyle(color: Colors.white)),
-                  leading: Container(
-                      width: 50,
-                      height: 50,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF412a2b), // Background color for the icon
-                      borderRadius: BorderRadius.circular(8), // Rounded corners
-                    ),
-                    padding: const EdgeInsets.all(8), // Padding inside the container
-                    child: const Icon(Icons.search, color: Colors.white),
-                  ),
+                  padding: const EdgeInsets.all(8), // Padding inside the container
+                  child: const Icon(Icons.touch_app_outlined, color: Colors.white),
                 ),
               ),
-            ],
+            ),
           ),
           const SizedBox(height: 20),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Text("Nearby stores", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+              child: Text("Sort Offers By", style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
             ),
           ),
-          const SizedBox(height: 10),
-          userPosition.latitude == 0.0 && userPosition.longitude == 0.0
-            ? const CircularProgressIndicator()
-            : FutureBuilder<List<Store>>(
-            future: getClosestStores(),
-            builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const CircularProgressIndicator();
-            } else if (snapshot.hasError) {
-              return Text('Error: ${snapshot.error}', style: TextStyle(color: Colors.white));
-            } else {
-              if(snapshot.data == null || snapshot.data!.isEmpty) {
-                return const Text('No stores found', style: TextStyle(color: Colors.white));
-                } else {
-                  return SizedBox(
-                    width: MediaQuery.of(context).size.width - 10,
-                    height: MediaQuery.of(context).size.height - 550,
-                    child: ListView.builder(
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: snapshot.data!.length,
-                      itemBuilder: (context, index) {
-                        Store store = snapshot.data![index];
-                        return buildStoreTile(store, userPosition, context, prefs);
-                      },
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 380),
+              height: 55,
+              decoration: BoxDecoration(
+                color: const Color(0xFF412a2b),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: FutureBuilder<String>(
+                future: getSortingBy(),
+                builder: (context, snapshot) {
+                  String? initialSelection = snapshot.data ?? 'category';
+                  return DropdownMenu<String>(
+                    width: MediaQuery.of(context).size.width - 40,
+                    initialSelection: initialSelection,
+                    dropdownMenuEntries: [
+                      DropdownMenuEntry(
+                        value: 'category',
+                        label: 'Category',
+                        style: ButtonStyle(
+                          foregroundColor: WidgetStateProperty.all(Colors.white),
+                          textStyle: WidgetStateProperty.all(const TextStyle(fontSize: 16, fontWeight: FontWeight.normal)),
+                        ),
+                      ),
+                      DropdownMenuEntry(
+                        value: 'priceLowToHigh',
+                        label: 'Price: Low to High',
+                        style: ButtonStyle(
+                          foregroundColor: WidgetStateProperty.all(Colors.white),
+                          textStyle: WidgetStateProperty.all(const TextStyle(fontSize: 16, fontWeight: FontWeight.normal)),
+                        ),
+                      ),
+                      DropdownMenuEntry(
+                        value: 'priceHighToLow',
+                        label: 'Price: High to Low',
+                        style: ButtonStyle(
+                          foregroundColor: WidgetStateProperty.all(Colors.white),
+                          textStyle: WidgetStateProperty.all(const TextStyle(fontSize: 16, fontWeight: FontWeight.normal)),
+                        ),
+                      ),
+                      DropdownMenuEntry(
+                        value: 'discountLowToHigh',
+                        label: 'Discount: Low to High',
+                        style: ButtonStyle(
+                          foregroundColor: WidgetStateProperty.all(Colors.white),
+                          textStyle: WidgetStateProperty.all(const TextStyle(fontSize: 16, fontWeight: FontWeight.normal)),
+                        ),
+                      ),
+                      DropdownMenuEntry(
+                        value: 'discountHighToLow',
+                        label: 'Discount: High to Low',
+                        style: ButtonStyle(
+                          foregroundColor: WidgetStateProperty.all(Colors.white),
+                          textStyle: WidgetStateProperty.all(const TextStyle(fontSize: 16, fontWeight: FontWeight.normal)),
+                        ),
+                      ),
+                      DropdownMenuEntry(
+                        value: 'nameAZ',
+                        label: 'Name: A-Z',
+                        style: ButtonStyle(
+                          foregroundColor: WidgetStateProperty.all(Colors.white),
+                          textStyle: WidgetStateProperty.all(const TextStyle(fontSize: 16, fontWeight: FontWeight.normal)),
+                        ),
+                      ),
+                      DropdownMenuEntry(
+                        value: 'nameZA',
+                        label: 'Name: Z-A',
+                        style: ButtonStyle(
+                          foregroundColor: WidgetStateProperty.all(Colors.white),
+                          textStyle: WidgetStateProperty.all(const TextStyle(fontSize: 16, fontWeight: FontWeight.normal)),
+                        ),
+                      ),
+                    ],
+                    onSelected: (value) {
+                      prefs.setString('sortOffersBy', value ?? 'category');
+                    },
+                    textStyle: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.normal,
+                    ),
+                    inputDecorationTheme: InputDecorationTheme(
+                      filled: true,
+                      fillColor: const Color(0xFF412a2b),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    menuStyle: MenuStyle(
+                      backgroundColor: WidgetStateProperty.all(const Color(0xFF412a2b)),
+                      shape: WidgetStateProperty.all(
+                        RoundedRectangleBorder(
+                          borderRadius: BorderRadius.only(
+                            bottomLeft: Radius.circular(10),
+                            bottomRight: Radius.circular(10),
+                          ),
+                        ),
+                      ),
+                      maximumSize: WidgetStateProperty.all(Size(400.0, 500.0)),
+                      alignment: Alignment.lerp(Alignment.bottomLeft, Alignment.centerLeft, 0.5),
                     ),
                   );
-                }
-              }
-            },
-          )
+                },
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -190,7 +251,6 @@ class _SettingsPageState extends State<SettingsPage> {
       if (serviceEnabled) {
         if (permission == LocationPermission.denied) {
           permission = await Geolocator.requestPermission();
-          print("Location permission requested: $permission");
         } else if (permission != LocationPermission.denied) {
           try {
             return await Geolocator.getCurrentPosition(locationSettings: LocationSettings(accuracy: LocationAccuracy.high));
@@ -217,7 +277,6 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<List<Store>> getClosestStores() async {
     await initializeSharedPreferences();
     String? cachedData = prefs.getString('stores');
-    print(cachedData);
     if (cachedData != null && cachedData.isNotEmpty) {
       List<dynamic> jsonList = json.decode(cachedData);
       stores = jsonList.map((json) => Store.fromJson(json)).toList();
@@ -247,47 +306,60 @@ class _SettingsPageState extends State<SettingsPage> {
     prefs.setString('storeId', selectedStore.storeId);
     return selectedStore;
   }
+
+  void _openSelectStore(BuildContext context) async {
+    final selectedStore = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => SelectStore()),
+    );
+    if (selectedStore != null && mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<String> getSortingBy() async {
+    await initializeSharedPreferences();
+    String? sortBy = prefs.getString('sortOffersBy');
+    if (sortBy == null || sortBy.isEmpty) {
+      return 'category';
+    }
+    return sortBy;
+  }
 }
 
 Widget buildStoreTile(Store store, Position? userPosition, BuildContext context, SharedPreferences prefs) {
-  return GestureDetector(
-    onTap: () {
-      prefs.setString('selectedStore', json.encode(store));
-      prefs.setString('storeId', store.storeId);
-    },
-    child: Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: ListTile(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(store.name, style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                SizedBox(
-                  width: MediaQuery.of(context).size.width - 200,
-                  child: Text(store.address, style: TextStyle(color: Colors.white, fontSize: 12), overflow: TextOverflow.ellipsis,),
-                ),
-                userPosition != null ? Text(
-                  "${store.getDistance(userPosition.latitude, userPosition.longitude).toStringAsFixed(2)} km",
-                  style: TextStyle(color: Colors.white, fontSize: 12),
-                ) : Text("Distance not available", style: TextStyle(color: Colors.white, fontSize: 12)),
-              ],
-            ),
-            Text(store.getOpeningHoursForToday(store), style: TextStyle(color: Colors.white, fontSize: 11)),
-          ],
-        ),
-        leading: Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            color: const Color(0xFF412a2b), // Background color for the icon
-            borderRadius: BorderRadius.circular(8), // Rounded corners
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8.0),
+    child: ListTile(
+      title: Text(store.name, style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              SizedBox(
+                width: MediaQuery.of(context).size.width - 200,
+                child: Text(store.address, style: TextStyle(color: Colors.white, fontSize: 12), overflow: TextOverflow.ellipsis,),
+              ),
+              userPosition != null ? Text(
+                "${store.getDistance(userPosition.latitude, userPosition.longitude).toStringAsFixed(2)} km",
+                style: TextStyle(color: Colors.white, fontSize: 12),
+              ) : Text("Distance not available", style: TextStyle(color: Colors.white, fontSize: 12)),
+            ],
           ),
-          padding: const EdgeInsets.all(8), // Padding inside the container
-          child: const Icon(Icons.storefront, color: Colors.white),
+          Text(store.getOpeningHoursForToday(store), style: TextStyle(color: Colors.white, fontSize: 11)),
+        ],
+      ),
+      leading: Container(
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(
+          color: const Color(0xFF412a2b), // Background color for the icon
+          borderRadius: BorderRadius.circular(8), // Rounded corners
         ),
+        padding: const EdgeInsets.all(8), // Padding inside the container
+        child: const Icon(Icons.storefront, color: Colors.white),
       ),
     ),
   );

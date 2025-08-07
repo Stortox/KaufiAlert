@@ -21,7 +21,9 @@ class _FavoriteOffersState extends State<FavoriteOffers> {
 
   Future<List<Product>> initializeFavoriteOffers() async {
     favoriteOffers = await getFavoriteOffers();
-    setState(() {});
+    if(mounted) {
+      setState(() {});
+    }
     return favoriteOffers;
   }
 

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:kaufi_allert_v2/pages/main_screen.dart';
 import 'package:kaufi_allert_v2/pages/offer_detail.dart';
 import 'package:kaufi_allert_v2/pages/offers_page.dart';
+import 'package:kaufi_allert_v2/pages/select_store.dart';
+import 'package:kaufi_allert_v2/pages/settings_screen.dart';
 
 void main() async {
   runApp(MainApp());
@@ -28,6 +30,8 @@ class MainApp extends StatelessWidget {
         '/offerDetail': (context) => OfferDetail(
           product: ModalRoute.of(context)!.settings.arguments as Product,
         ),
+        '/selectStore': (context) => const SelectStore(),
+        '/settings': (context) => const SettingsPage(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/offerDetail') {

@@ -23,8 +23,10 @@ class _OfferDetailState extends State<OfferDetail> {
   }
 
   Future<List<Product>> initializeFavoriteOffers() async {
-    favoriteOffers = await getFavoriteOffers();
-    setState(() {});
+    if (mounted) {
+      favoriteOffers = await getFavoriteOffers();
+      setState(() {});
+    }
     return favoriteOffers;
   }
 
@@ -77,29 +79,31 @@ class _OfferDetailState extends State<OfferDetail> {
                   size: 40,
                 ),
                 onPressed: () {
-                  setState(() {
-                    Product existingProduct = favoriteOffers.firstWhere(
-                      (product) => product.title == widget.product.title,
-                      orElse: () => Product(
-                        title: '',
-                        price: '',
-                        discount: '',
-                        basePrice: '',
-                        oldPrice: '',
-                        imageUrl: '',
-                        description: '',
-                        category: '',
-                        unit: '',
-                      ),
-                    );
-                    if (existingProduct.title.isNotEmpty) {
-                      favoriteOffers.remove(existingProduct);
-                      prefs.setString('favoriteOffers', json.encode(favoriteOffers.map((product) => product.toJson()).toList()));
-                    } else {
-                      favoriteOffers.add(widget.product);
-                      prefs.setString('favoriteOffers', json.encode(favoriteOffers.map((product) => product.toJson()).toList()));
-                    }
-                  });
+                  if(mounted){
+                    setState(() {
+                      Product existingProduct = favoriteOffers.firstWhere(
+                        (product) => product.title == widget.product.title,
+                        orElse: () => Product(
+                          title: '',
+                          price: '',
+                          discount: '',
+                          basePrice: '',
+                          oldPrice: '',
+                          imageUrl: '',
+                          description: '',
+                          category: '',
+                          unit: '',
+                        ),
+                      );
+                      if (existingProduct.title.isNotEmpty) {
+                        favoriteOffers.remove(existingProduct);
+                        prefs.setString('favoriteOffers', json.encode(favoriteOffers.map((product) => product.toJson()).toList()));
+                      } else {
+                        favoriteOffers.add(widget.product);
+                        prefs.setString('favoriteOffers', json.encode(favoriteOffers.map((product) => product.toJson()).toList()));
+                      }
+                    });
+                  }
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(

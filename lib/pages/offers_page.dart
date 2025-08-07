@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:kaufi_allert_v2/pages/offer_detail.dart';
 import 'package:kaufi_allert_v2/pages/settings_screen.dart';
@@ -41,6 +42,10 @@ class _OffersPageState extends State<OffersPage> {
   SortOrder currentSortOrder = SortOrder.none;
   List<Product> filteredProducts = [];
   List<Product> products = [];
+  List<Product> defaultSorting = [];
+  
+  bool dynamicStoreEnabled = false;
+  
   late SharedPreferences prefs;
   initializeSharedPreferences() async {
     prefs = await SharedPreferences.getInstance();
@@ -52,10 +57,12 @@ class _OffersPageState extends State<OffersPage> {
   void initState() {
     super.initState();
     fetchManager().then((value) {
-      setState(() {
-        products = value;
-        filteredProducts = products;
-      });
+      if(mounted) {
+        setState(() {
+          products = value;
+          filteredProducts = products;
+        });
+      }
     });
   }
 
@@ -221,6 +228,18 @@ class _OffersPageState extends State<OffersPage> {
 
   Future<List<Product>> fetchManager() async {
     await initializeSharedPreferences();
+
+    dynamicStoreEnabled = prefs.getBool('dynamicStoreEnabled') ?? false;
+    if(dynamicStoreEnabled) {
+      getDynamicStore().then((store) {
+        if(mounted) {
+          setState(() {
+            prefs.setString('storeId', store.storeId);
+          });
+        }
+      });
+    }
+
     //prefs.setString('stores', "");
     if(prefs.getString('stores') == null || prefs.getString('stores')!.isEmpty) {
       fetchStores();
@@ -231,32 +250,35 @@ class _OffersPageState extends State<OffersPage> {
     }
     List<Product> cachedOffers = await getCachedOffers();
     if (cachedOffers.isNotEmpty && prefs.getString('offersDate${prefs.getString('storeId') ?? 'DE3940'}') != null && DateTime.now().difference(DateTime.parse(prefs.getString('offersDate${prefs.getString('storeId') ?? 'DE3940'}')!)).inDays < 7) {
-      products = cachedOffers;
+      defaultSorting = cachedOffers;
+      products = sortProducts(cachedOffers);
       filteredProducts = products;
-      return cachedOffers;
+      return products;
     } else {
       return fetchData();
     }
   }
 
   void _applyFilter(FilterType filter) {
-    setState(() {
-      currentFilter = filter;
-      
-      // Use cached results if available
-      if (_filteredProductsCache.containsKey(filter)) {
-        filteredProducts = _filteredProductsCache[filter]!;
-        return;
-      }
-      
-      // Calculate and cache results
-      filteredProducts = products.where((product) {
-        return filter == FilterType.all || 
-                filter.toString().split('.').last == product.category;
-      }).toList();
+    if(mounted){
+      setState(() {
+        currentFilter = filter;
 
-      _filteredProductsCache[filter] = filteredProducts;
-    });
+        // Use cached results if available
+        if (_filteredProductsCache.containsKey(filter)) {
+          filteredProducts = _filteredProductsCache[filter]!;
+          return;
+        }
+        
+        // Calculate and cache results
+        filteredProducts = products.where((product) {
+          return filter == FilterType.all || 
+                  filter.toString().split('.').last == product.category;
+        }).toList();
+
+        _filteredProductsCache[filter] = filteredProducts;
+      });
+    }
   }
 
   Widget _buildFilterChip(String label, FilterType filterType) {
@@ -360,7 +382,8 @@ class _OffersPageState extends State<OffersPage> {
     }
 
     prefs.setString('offersFinal${prefs.getString('storeId') ?? 'DE3940'}', json.encode(offersFinal.map((product) => product.toJson()).toList()));
-    return offersFinal;
+    defaultSorting = offersFinal;
+    return sortProducts(offersFinal);
   }
 
   void fetchStores() async {
@@ -431,6 +454,95 @@ class _OffersPageState extends State<OffersPage> {
       )).toList();
     }
     return [];
+  }
+
+  List<Product> sortProducts(List<Product> products) {
+    String sortBy = prefs.getString('sortOffersBy') ?? 'category';
+    switch (sortBy) {
+      case 'category':
+        products = defaultSorting;
+        break;
+      case 'nameAZ':
+        products.sort((a, b) => a.title.compareTo(b.title));
+        break;
+      case 'nameZA':
+        products.sort((a, b) => b.title.compareTo(a.title));
+        break;
+      case 'priceLowToHigh':
+        products.sort((a, b) => double.parse(a.price.replaceAll('€', '').replaceAll(',', '.')).compareTo(double.parse(b.price.replaceAll('€', '').replaceAll(',', '.'))));
+        break;
+      case 'priceHighToLow':
+        products.sort((a, b) => double.parse(b.price.replaceAll('€', '').replaceAll(',', '.')).compareTo(double.parse(a.price.replaceAll('€', '').replaceAll(',', '.'))));
+        break;
+      case 'discountHighToLow':
+        products.sort((a, b) {
+          int discountA = int.parse(a.discount.replaceAll('%', '').replaceAll('-', '').trim());
+          int discountB = int.parse(b.discount.replaceAll('%', '').replaceAll('-', '').trim());
+          return discountB.compareTo(discountA);
+        });
+        break;
+      case 'discountLowToHigh':
+        products.sort((a, b) {
+          int discountA = int.parse(a.discount.replaceAll('%', '').replaceAll('-', '').trim());
+          int discountB = int.parse(b.discount.replaceAll('%', '').replaceAll('-', '').trim());
+          return discountA.compareTo(discountB);
+        });
+      default:
+        break;
+    }
+    return products;
+  }
+
+  Future<Store> getDynamicStore() async {
+    await initializeSharedPreferences();
+    String? storesJson = prefs.getString('stores');
+    if (storesJson == null || storesJson.isEmpty) {
+      throw Exception("No stores available");
+    }
+
+    List<dynamic> storesData = json.decode(storesJson);
+    List<Store> stores = storesData.map((data) => Store.fromJson(data)).toList();
+
+    Position position;
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        throw Exception("Location services are disabled");
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw Exception("Location permission denied");
+        }
+      }
+      
+      if (permission == LocationPermission.deniedForever) {
+        throw Exception("Location permission permanently denied");
+      }
+
+      position = await Geolocator.getCurrentPosition(locationSettings:  LocationSettings(accuracy: LocationAccuracy.high));
+    } catch (e) {
+      throw Exception("Failed to get location: $e");
+    }
+
+    List<Store> localStores = List<Store>.from(stores).where((store) => store.country == "DE").toList();
+    localStores.sort((a, b) {
+      double distanceA = a.getDistance(position.latitude, position.longitude);
+      double distanceB = b.getDistance(position.latitude, position.longitude);
+      return distanceA.compareTo(distanceB);
+    });
+
+    prefs.setString('selectedStore', json.encode(localStores.first));
+    prefs.setString('storeId', localStores.first.storeId);
+    String? selectedStoreJson = prefs.getString('selectedStore');
+    if (selectedStoreJson != null) {
+      Map<String, dynamic> storeMap = json.decode(selectedStoreJson);
+      return Store.fromJson(storeMap);
+    } else {
+      throw Exception("No store selected");
+    }
   }
 }
 

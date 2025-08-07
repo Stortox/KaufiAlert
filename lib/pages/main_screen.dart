@@ -20,9 +20,11 @@ class _MainScreenState extends State<MainScreen> {
   ];
 
   void _onItemTapped(int index) {
+    if(mounted){
     setState(() {
       _currentIndex = index;
     });
+    }
   }
 
   @override
