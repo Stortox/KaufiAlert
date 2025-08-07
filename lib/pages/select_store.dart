@@ -187,7 +187,7 @@ class _SelectStoreState extends State<SelectStore> {
                   } else {
                     return SizedBox(
                       width: MediaQuery.of(context).size.width - 10,
-                      height: MediaQuery.of(context).size.height - 550,
+                      height: MediaQuery.of(context).size.height - 400,
                       child: ListView.builder(
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: snapshot.data!.length,
@@ -246,7 +246,7 @@ class _SelectStoreState extends State<SelectStore> {
       Position position = await Geolocator.getCurrentPosition(locationSettings: LocationSettings(accuracy: LocationAccuracy.high));
       double userLatitude = position.latitude;
       double userLongitude = position.longitude;
-      List<Store> localStores = List<Store>.from(stores).where((store) => store.country == WidgetsBinding.instance.platformDispatcher.locale.countryCode && store.storeId != prefs.getString('storeId')).toList();
+      List<Store> localStores = List<Store>.from(stores).where((store) => store.country == "DE" && store.storeId != prefs.getString('storeId')).toList();
       localStores.sort((a, b) {
         double distanceA = a.getDistance(userLatitude, userLongitude);
         double distanceB = b.getDistance(userLatitude, userLongitude);
