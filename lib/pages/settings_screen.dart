@@ -284,7 +284,7 @@ class _SettingsPageState extends State<SettingsPage> {
       double userLatitude = position.latitude;
       double userLongitude = position.longitude;
       //WidgetsBinding.instance.platformDispatcher.locale.countryCode
-      List<Store> localStores = List<Store>.from(stores).where((store) => store.country == "DE" && store.storeId != prefs.getString('storeId')).toList();
+      List<Store> localStores = List<Store>.from(stores).where((store) => store.country == WidgetsBinding.instance.platformDispatcher.locale.countryCode && store.storeId != prefs.getString('storeId')).toList();
       localStores.sort((a, b) {
         double distanceA = a.getDistance(userLatitude, userLongitude);
         double distanceB = b.getDistance(userLatitude, userLongitude);

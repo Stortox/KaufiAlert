@@ -527,7 +527,7 @@ class _OffersPageState extends State<OffersPage> {
       throw Exception("Failed to get location: $e");
     }
 
-    List<Store> localStores = List<Store>.from(stores).where((store) => store.country == "DE").toList();
+    List<Store> localStores = List<Store>.from(stores).where((store) => store.country == WidgetsBinding.instance.platformDispatcher.locale.countryCode).toList();
     localStores.sort((a, b) {
       double distanceA = a.getDistance(position.latitude, position.longitude);
       double distanceB = b.getDistance(position.latitude, position.longitude);
