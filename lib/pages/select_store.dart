@@ -121,7 +121,7 @@ class _SelectStoreState extends State<SelectStore> {
                         children: [
                           Expanded(
                             child: Text(
-                              "Use your current location to automatically find the nearest store.",
+                              "Use your current location to automatically find the nearest store. Only available in supported areas.",
                               style: TextStyle(color: Colors.white70, fontSize: 12),
                             ),
                           ),

@@ -534,8 +534,11 @@ class _OffersPageState extends State<OffersPage> {
       return distanceA.compareTo(distanceB);
     });
 
-    prefs.setString('selectedStore', json.encode(localStores.first));
-    prefs.setString('storeId', localStores.first.storeId);
+    if(localStores.isNotEmpty) {
+      prefs.setString('selectedStore', json.encode(localStores.first));
+      prefs.setString('storeId', localStores.first.storeId);
+    }
+    
     String? selectedStoreJson = prefs.getString('selectedStore');
     if (selectedStoreJson != null) {
       Map<String, dynamic> storeMap = json.decode(selectedStoreJson);
