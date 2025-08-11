@@ -19,13 +19,8 @@ enum FilterType {
   stapleFoods,
   coffeeTeaSweetsSnacks,
   beverages,
-  bakery
-}
-
-enum SortOrder {
-  none,
-  ascending,
-  descending,
+  bakery,
+  organic
 }
 
 class OffersPage extends StatefulWidget {
@@ -39,11 +34,21 @@ class OffersPage extends StatefulWidget {
 class _OffersPageState extends State<OffersPage> {
 
   FilterType currentFilter = FilterType.all;
-  SortOrder currentSortOrder = SortOrder.none;
   List<Product> filteredProducts = [];
   List<Product> products = [];
   List<Product> defaultSorting = [];
-  
+  final sortOptions = [
+    {'value': 'category', 'label': 'Category'},
+    {'value': 'priceLowToHigh', 'label': 'Price: Low to High'},
+    {'value': 'priceHighToLow', 'label': 'Price: High to Low'},
+    {'value': 'discountLowToHigh', 'label': 'Discount: Low to High'},
+    {'value': 'discountHighToLow', 'label': 'Discount: High to Low'},
+    {'value': 'nameAZ', 'label': 'Name: A-Z'},
+    {'value': 'nameZA', 'label': 'Name: Z-A'},
+  ];
+
+  bool filtersExpanded = false;
+
   bool dynamicStoreEnabled = false;
   
   late SharedPreferences prefs;
@@ -59,7 +64,7 @@ class _OffersPageState extends State<OffersPage> {
     fetchManager().then((value) {
       if(mounted) {
         setState(() {
-          products = value;
+          products = sortProducts(value);
           filteredProducts = products;
         });
       }
@@ -80,133 +85,159 @@ class _OffersPageState extends State<OffersPage> {
         child: Column(
           children: [
             Padding(padding: const EdgeInsets.only(top: 10)),
-            SearchAnchor(
-              viewBackgroundColor: const Color(0xFF412a2b),
-              headerTextStyle: const TextStyle(color: Colors.white, fontSize: 18),
-              viewLeading: IconButton(icon: Icon(Icons.arrow_back, color: Colors.white), onPressed: () {
-                Navigator.pop(context);
-                FocusScope.of(context).unfocus();
-              }),
-                builder: (context, controller) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                  child: SearchBar(
-                    controller: controller,
-                    padding: const WidgetStatePropertyAll<EdgeInsets>(
-                      EdgeInsets.symmetric(horizontal: 16.0),
-                    ),
-                    hintText: 'Search',
-                    backgroundColor: WidgetStateProperty.all(const Color(0xFF412a2b)),
-                    textStyle: WidgetStateProperty.all(const TextStyle(color: Colors.white)),
-                    onTap: () {
-                      controller.openView();
-                    },
-                    onChanged: (_) {
-                      controller.openView();
-                    },
-                    onTapOutside: (_) {
-                      FocusScope.of(context).unfocus();
-                    },
-                    leading: Icon(Icons.search, color: Colors.white),
-                  ),
-                );
-                },
-              suggestionsBuilder: (context, controller) {
-                List<ListTile> listTiles = [];
-                final filteredProducts = products.where((product) {
-                  if (controller.text.isEmpty) {
-                    return false;
-                  }
-                  return product.title.toLowerCase().contains(controller.text.toLowerCase());
-                }).toList();
-                for(var product in filteredProducts) {
-                  listTiles.add(ListTile(
-                    title: Text(
-                      product.title,
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                    onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => OfferDetail(product: product)));
-                    },
-                  ));
-                }
-                return listTiles;
-              },
-            ),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: <Widget>[
-                  _buildFilterChip('All', FilterType.all),
-                  const SizedBox(width: 8.0),
-                  _buildFilterChip('Fruits & Vegetables', FilterType.fruitAndVegetables),
-                  const SizedBox(width: 8.0),
-                  _buildFilterChip('Meat & Poultry', FilterType.meatAndPoultry),
-                  const SizedBox(width: 8.0),
-                  _buildFilterChip('Fish', FilterType.fish),
-                  const SizedBox(width: 8.0),
-                  _buildFilterChip('Dairy', FilterType.dairyProducts),
-                  const SizedBox(width: 8.0),
-                  _buildFilterChip('Frozen Food', FilterType.frozenFood),
-                  const SizedBox(width: 8.0),
-                  _buildFilterChip('Canned Goods', FilterType.cannedGoods),
-                  const SizedBox(width: 8.0),
-                  _buildFilterChip('Staple Foods', FilterType.stapleFoods),
-                  const SizedBox(width: 8.0),
-                  _buildFilterChip('Coffee, Tea, Sweets & Snacks', FilterType.coffeeTeaSweetsSnacks),
-                  const SizedBox(width: 8.0),
-                  _buildFilterChip('Beverages', FilterType.beverages),
-                  const SizedBox(width: 8.0),
-                  _buildFilterChip('Bakery', FilterType.bakery),
-                  const SizedBox(width: 8.0),
-                ],
-              ),
-            ),
-            if(products.isEmpty)
-            FutureBuilder<List<Product>>(
-              future: fetchManager(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const CircularProgressIndicator();
-                } else if (snapshot.hasError) {
-                  return Text('Error: ${snapshot.error}');
-                } else {
-                  if(snapshot.data == null || snapshot.data!.isEmpty) {
-                    return const Text('No offers found');
-                  } else {
-                    for (var product in snapshot.data!) {
-                      if(products.any((p) => p.title == product.title)) {
-                        continue; // Skip if product already exists
-                      }
-                      products.add(product);
-                    }
-                    return SizedBox(
-                      width: MediaQuery.of(context).size.width - 10,
-                      height: MediaQuery.of(context).size.height - 284,
-                      child: GridView.builder(
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 8.0,
-                          mainAxisSpacing: 8.0,
-                          childAspectRatio: 0.8,
+            Row(
+              children: [
+                SearchAnchor(
+                  viewBackgroundColor: const Color(0xFF412a2b),
+                  headerTextStyle: const TextStyle(color: Colors.white, fontSize: 18),
+                  viewLeading: IconButton(icon: Icon(Icons.arrow_back, color: Colors.white), onPressed: () {
+                    Navigator.pop(context);
+                    FocusScope.of(context).unfocus();
+                  }),
+                    builder: (context, controller) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      child: SearchBar(
+                        controller: controller,
+                        padding: const WidgetStatePropertyAll<EdgeInsets>(
+                          EdgeInsets.symmetric(horizontal: 16.0),
                         ),
-                        itemCount: products.length,
-                        itemBuilder: (context, index) {
-                        Product product = products[index];
-                        return offerCard(product, context);
+                        hintText: 'Search',
+                        backgroundColor: WidgetStateProperty.all(const Color(0xFF412a2b)),
+                        textStyle: WidgetStateProperty.all(const TextStyle(color: Colors.white)),
+                        onTap: () {
+                          controller.openView();
                         },
+                        onChanged: (_) {
+                          controller.openView();
+                        },
+                        onTapOutside: (_) {
+                          FocusScope.of(context).unfocus();
+                        },
+                        leading: Icon(Icons.search, color: Colors.white),
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.of(context).size.width * 0.75,
+                          minHeight: 55,
+                        ),
                       ),
                     );
-                  }
-                }
-              },
-            ) else 
-            SizedBox(
-              width: MediaQuery.of(context).size.width - 10,
-              height: MediaQuery.of(context).size.height - 284,
+                    },
+                  suggestionsBuilder: (context, controller) {
+                    List<ListTile> listTiles = [];
+                    final filteredProducts = products.where((product) {
+                      if (controller.text.isEmpty) {
+                        return false;
+                      }
+                      return product.title.toLowerCase().contains(controller.text.toLowerCase());
+                    }).toList();
+                    for(var product in filteredProducts) {
+                      listTiles.add(ListTile(
+                        title: Text(
+                          product.title,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        onTap: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => OfferDetail(product: product)));
+                        },
+                      ));
+                    }
+                    return listTiles;
+                  },
+                ),
+                const SizedBox(width: 4.0),
+                GestureDetector(
+                onTap: () {
+                  setState(() {
+                    filtersExpanded = !filtersExpanded;
+                  });
+                },
+                child: Row(
+                  children: [
+                    Text(
+                      "Filters",
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                    Icon(
+                      filtersExpanded ? Icons.expand_less : Icons.expand_more,
+                      color: Colors.white,
+                    ),
+                  ],
+                ),
+              ),
+              ],
+            ),
+            if (filtersExpanded) ...[
+              const SizedBox(height: 8.0),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text("Categories", style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: <Widget>[
+                    _buildFilterChip('All', FilterType.all),
+                    const SizedBox(width: 8.0),
+                    _buildFilterChip('Fruits & Vegetables', FilterType.fruitAndVegetables),
+                    const SizedBox(width: 8.0),
+                    _buildFilterChip('Meat & Poultry', FilterType.meatAndPoultry),
+                    const SizedBox(width: 8.0),
+                    _buildFilterChip('Fish', FilterType.fish),
+                    const SizedBox(width: 8.0),
+                    _buildFilterChip('Dairy', FilterType.dairyProducts),
+                    const SizedBox(width: 8.0),
+                    _buildFilterChip('Frozen Food', FilterType.frozenFood),
+                    const SizedBox(width: 8.0),
+                    _buildFilterChip('Canned Goods', FilterType.cannedGoods),
+                    const SizedBox(width: 8.0),
+                    _buildFilterChip('Staple Foods', FilterType.stapleFoods),
+                    const SizedBox(width: 8.0),
+                    _buildFilterChip('Coffee, Tea, Sweets & Snacks', FilterType.coffeeTeaSweetsSnacks),
+                    const SizedBox(width: 8.0),
+                    _buildFilterChip('Beverages', FilterType.beverages),
+                    const SizedBox(width: 8.0),
+                    _buildFilterChip('Bakery', FilterType.bakery),
+                    const SizedBox(width: 8.0),
+                    _buildFilterChip('Organic', FilterType.organic),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text("Sort Offers By", style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              FutureBuilder<String>(
+                future: getSortingBy(),
+                builder: (context, snapshot) {
+                  String selectedSort = snapshot.data ?? 'category';
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Row(
+                      children: sortOptions.map((option) {
+                        if(currentFilter != FilterType.all && option['value'] == 'category') {
+                          return const SizedBox.shrink();
+                        } else {
+                          return _buildSortChip(option, selectedSort);
+                        }
+                      }).toList(),
+                    ),
+                  );
+                },
+              ),
+            ],
+            const SizedBox(height: 8.0),
+            Expanded(
               child: GridView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 5.0),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   crossAxisSpacing: 8.0,
@@ -219,7 +250,7 @@ class _OffersPageState extends State<OffersPage> {
                   return offerCard(product, context);
                 },
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -251,9 +282,7 @@ class _OffersPageState extends State<OffersPage> {
     List<Product> cachedOffers = await getCachedOffers();
     if (cachedOffers.isNotEmpty && prefs.getString('offersDate${prefs.getString('storeId') ?? 'DE3940'}') != null && DateTime.now().difference(DateTime.parse(prefs.getString('offersDate${prefs.getString('storeId') ?? 'DE3940'}')!)).inDays < 7) {
       defaultSorting = cachedOffers;
-      products = sortProducts(cachedOffers);
-      filteredProducts = products;
-      return products;
+      return cachedOffers;
     } else {
       return fetchData();
     }
@@ -287,6 +316,7 @@ class _OffersPageState extends State<OffersPage> {
         label,
         style: TextStyle(
           color: (currentFilter == filterType ? Colors.black : Colors.white),
+          fontWeight: (currentFilter == filterType ? FontWeight.bold : FontWeight.normal),
         ),
       ),
       selected: currentFilter == filterType,
@@ -305,9 +335,41 @@ class _OffersPageState extends State<OffersPage> {
     );
   }
 
+  Widget _buildSortChip(Map<String, String> option, String selectedSort) {
+    return Padding(
+      padding: option['value'] != sortOptions.last['value'] ? const EdgeInsets.only(right: 8.0) : EdgeInsets.zero,
+      child: FilterChip(
+        label: Text(
+          option['label']!,
+          style: TextStyle(
+            color: selectedSort == option['value'] ? Colors.black : Colors.white,
+            fontWeight: selectedSort == option['value'] ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+        selected: selectedSort == option['value'],
+        onSelected: (bool selected) async {
+          if (selected) {
+            await prefs.setString('sortOffersBy', option['value']!).then((_) {
+              setState(() {
+                filteredProducts = sortProducts(filteredProducts);
+              });
+            });
+          }
+        },
+        backgroundColor: const Color(0xFF412a2b),
+        selectedColor: const Color.fromARGB(255, 120, 80, 80),
+        checkmarkColor: Colors.black,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.0),
+          side: const BorderSide(color: Colors.black, width: 0),
+        )
+      ),
+    );
+  }
+
   Future<List<Product>> fetchData() async {
     //print("Fetching offers from API");
-    var selectedOffers = ["02_Obst__Gemuese__Pflanzen", "01_Fleisch__Gefluegel__Wurst", "01a_Frischer_Fisch", "03_Molkereiprodukte__Fette", "04_Tiefkuehlkost", "05_Feinkost__Konserven", "06_Grundnahrungsmittel", "07_Kaffee__Tee__Suesswaren__Knabberartikel", "08_Getraenke__Spirituosen", "708_Backshop"];
+    var selectedOffers = ["02_Obst__Gemuese__Pflanzen", "01_Fleisch__Gefluegel__Wurst", "01a_Frischer_Fisch", "03_Molkereiprodukte__Fette", "04_Tiefkuehlkost", "05_Feinkost__Konserven", "06_Grundnahrungsmittel", "07_Kaffee__Tee__Suesswaren__Knabberartikel", "08_Getraenke__Spirituosen", "708_Backshop", "562_Bio"];
     List<Product> offersFinal = <Product>[];
     var url = Uri.https('app.kaufland.net', '/data/api/v5/offers/${prefs.getString('storeId') ?? 'DE3940'}');
     var response = await http.get(url, headers: {"Authorization": "Basic S0lTLUtMQVBQOkRyZWNrc3pldWdfMzUyOS1BY2h0c3BubmVy"});
@@ -340,38 +402,7 @@ class _OffersPageState extends State<OffersPage> {
               imageUrl = offer['listImage'] ?? 'https://picsum.photos/250?image=9';
               description = offer['detailDescription'] ?? '';
               unit = offer['unit'] ?? '';
-              switch (selectedOffersTitle) {
-                case "02_Obst__Gemuese__Pflanzen":
-                  category = "fruitAndVegetables";
-                  break;
-                case "01_Fleisch__Gefluegel__Wurst":
-                  category = "meatAndPoultry";
-                  break;
-                case "01a_Frischer_Fisch":
-                  category = "fish";
-                  break;
-                case "03_Molkereiprodukte__Fette":
-                  category = "dairyProducts";
-                  break;
-                case "04_Tiefkuehlkost":
-                  category = "frozenFood";
-                  break;
-                case "05_Feinkost__Konserven":
-                  category = "cannedGoods";
-                  break;
-                case "06_Grundnahrungsmittel":
-                  category = "stapleFoods";
-                  break;
-                case "07_Kaffee__Tee__Suesswaren__Knabberartikel":
-                  category = "coffeeTeaSweetsSnacks";
-                  break;
-                case "08_Getraenke__Spirituosen":
-                  category = "beverages";
-                  break;
-                case "708_Backshop":
-                  category = "bakery";
-                  break;
-              }
+              category = FilterType.values.elementAt(selectedOffers.indexOf(selectedOffersTitle)+1).toString().split('.').last;
               if(!offersFinal.contains(Product(title: detailTitle, price: currentPrice, discount: discount, basePrice: basePrice, oldPrice: oldPrice, imageUrl: imageUrl, description: description, category: category, unit: unit))) {
                 offersFinal.add(Product(title: detailTitle, price: currentPrice, discount: discount, basePrice: basePrice, oldPrice: oldPrice, imageUrl: imageUrl, description: description, category: category, unit: unit));
               }
@@ -383,7 +414,7 @@ class _OffersPageState extends State<OffersPage> {
 
     prefs.setString('offersFinal${prefs.getString('storeId') ?? 'DE3940'}', json.encode(offersFinal.map((product) => product.toJson()).toList()));
     defaultSorting = offersFinal;
-    return sortProducts(offersFinal);
+    return offersFinal;
   }
 
   void fetchStores() async {
@@ -460,7 +491,9 @@ class _OffersPageState extends State<OffersPage> {
     String sortBy = prefs.getString('sortOffersBy') ?? 'category';
     switch (sortBy) {
       case 'category':
-        products = defaultSorting;
+        if(currentFilter == FilterType.all) {
+          products = List<Product>.from(defaultSorting);
+        }
         break;
       case 'nameAZ':
         products.sort((a, b) => a.title.compareTo(b.title));
@@ -546,6 +579,15 @@ class _OffersPageState extends State<OffersPage> {
     } else {
       throw Exception("No store selected");
     }
+  }
+
+  Future<String> getSortingBy() async {
+    await initializeSharedPreferences();
+    String? sortBy = prefs.getString('sortOffersBy');
+    if (sortBy == null || sortBy.isEmpty) {
+      return 'category';
+    }
+    return sortBy;
   }
 }
 

@@ -94,23 +94,23 @@ class _SelectStoreState extends State<SelectStore> {
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
                     child: ListTile(
-                    title: const Text("Use current location", style: TextStyle(color: Colors.white)),
-                    leading: Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                      color: const Color(0xFF412a2b),
-                      borderRadius: BorderRadius.circular(8),
+                      title: const Text("Use current location", style: TextStyle(color: Colors.white)),
+                      leading: Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                        color: const Color(0xFF412a2b),
+                        borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.all(8),
+                        child: const Icon(Icons.location_on_outlined, color: Colors.white),
                       ),
-                      padding: const EdgeInsets.all(8),
-                      child: const Icon(Icons.location_on_outlined, color: Colors.white),
-                    ),
-                    trailing: const Icon(Icons.info_outline, color: Colors.white),
-                    onTap: () {
-                      setState(() {
-                        isExplanationVisible = !isExplanationVisible;
-                      });
-                    },
+                      trailing: const Icon(Icons.info_outline, color: Colors.white),
+                      onTap: () {
+                        setState(() {
+                          isExplanationVisible = !isExplanationVisible;
+                        });
+                      },
                     ),
                   ),
                   if (isExplanationVisible)

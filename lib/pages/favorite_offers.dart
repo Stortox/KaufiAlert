@@ -72,10 +72,9 @@ class _FavoriteOffersState extends State<FavoriteOffers> {
                 ]
               : [
                   Padding(padding: const EdgeInsets.only(top: 10)),
-                  SizedBox(
-                    width: MediaQuery.of(context).size.width - 10,
-                    height: MediaQuery.of(context).size.height - 284,
+                  Expanded(
                     child: GridView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 5.0),
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
                         crossAxisSpacing: 8.0,

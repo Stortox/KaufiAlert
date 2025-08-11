@@ -123,122 +123,6 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
           ),
-          const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text("Sort Offers By", style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 380),
-              height: 55,
-              decoration: BoxDecoration(
-                color: const Color(0xFF412a2b),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: FutureBuilder<String>(
-                future: getSortingBy(),
-                builder: (context, snapshot) {
-                  String? initialSelection = snapshot.data ?? 'category';
-                  return DropdownMenu<String>(
-                    width: MediaQuery.of(context).size.width - 40,
-                    initialSelection: initialSelection,
-                    dropdownMenuEntries: [
-                      DropdownMenuEntry(
-                        value: 'category',
-                        label: 'Category',
-                        style: ButtonStyle(
-                          foregroundColor: WidgetStateProperty.all(Colors.white),
-                          textStyle: WidgetStateProperty.all(const TextStyle(fontSize: 16, fontWeight: FontWeight.normal)),
-                        ),
-                      ),
-                      DropdownMenuEntry(
-                        value: 'priceLowToHigh',
-                        label: 'Price: Low to High',
-                        style: ButtonStyle(
-                          foregroundColor: WidgetStateProperty.all(Colors.white),
-                          textStyle: WidgetStateProperty.all(const TextStyle(fontSize: 16, fontWeight: FontWeight.normal)),
-                        ),
-                      ),
-                      DropdownMenuEntry(
-                        value: 'priceHighToLow',
-                        label: 'Price: High to Low',
-                        style: ButtonStyle(
-                          foregroundColor: WidgetStateProperty.all(Colors.white),
-                          textStyle: WidgetStateProperty.all(const TextStyle(fontSize: 16, fontWeight: FontWeight.normal)),
-                        ),
-                      ),
-                      DropdownMenuEntry(
-                        value: 'discountLowToHigh',
-                        label: 'Discount: Low to High',
-                        style: ButtonStyle(
-                          foregroundColor: WidgetStateProperty.all(Colors.white),
-                          textStyle: WidgetStateProperty.all(const TextStyle(fontSize: 16, fontWeight: FontWeight.normal)),
-                        ),
-                      ),
-                      DropdownMenuEntry(
-                        value: 'discountHighToLow',
-                        label: 'Discount: High to Low',
-                        style: ButtonStyle(
-                          foregroundColor: WidgetStateProperty.all(Colors.white),
-                          textStyle: WidgetStateProperty.all(const TextStyle(fontSize: 16, fontWeight: FontWeight.normal)),
-                        ),
-                      ),
-                      DropdownMenuEntry(
-                        value: 'nameAZ',
-                        label: 'Name: A-Z',
-                        style: ButtonStyle(
-                          foregroundColor: WidgetStateProperty.all(Colors.white),
-                          textStyle: WidgetStateProperty.all(const TextStyle(fontSize: 16, fontWeight: FontWeight.normal)),
-                        ),
-                      ),
-                      DropdownMenuEntry(
-                        value: 'nameZA',
-                        label: 'Name: Z-A',
-                        style: ButtonStyle(
-                          foregroundColor: WidgetStateProperty.all(Colors.white),
-                          textStyle: WidgetStateProperty.all(const TextStyle(fontSize: 16, fontWeight: FontWeight.normal)),
-                        ),
-                      ),
-                    ],
-                    onSelected: (value) {
-                      prefs.setString('sortOffersBy', value ?? 'category');
-                    },
-                    textStyle: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.normal,
-                    ),
-                    inputDecorationTheme: InputDecorationTheme(
-                      filled: true,
-                      fillColor: const Color(0xFF412a2b),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                    menuStyle: MenuStyle(
-                      backgroundColor: WidgetStateProperty.all(const Color(0xFF412a2b)),
-                      shape: WidgetStateProperty.all(
-                        RoundedRectangleBorder(
-                          borderRadius: BorderRadius.only(
-                            bottomLeft: Radius.circular(10),
-                            bottomRight: Radius.circular(10),
-                          ),
-                        ),
-                      ),
-                      maximumSize: WidgetStateProperty.all(Size(400.0, 500.0)),
-                      alignment: Alignment.lerp(Alignment.bottomLeft, Alignment.centerLeft, 0.5),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -315,15 +199,6 @@ class _SettingsPageState extends State<SettingsPage> {
     if (selectedStore != null && mounted) {
       setState(() {});
     }
-  }
-
-  Future<String> getSortingBy() async {
-    await initializeSharedPreferences();
-    String? sortBy = prefs.getString('sortOffersBy');
-    if (sortBy == null || sortBy.isEmpty) {
-      return 'category';
-    }
-    return sortBy;
   }
 }
 
