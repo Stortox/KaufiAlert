@@ -1,4 +1,4 @@
-package com.example.kaufi_allert_v2
+package com.stortox.kaufi_allert_v2
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -52,7 +52,7 @@ class _OffersPageState extends State<OffersPage> {
   bool dynamicStoreEnabled = false;
   
   late SharedPreferences prefs;
-  initializeSharedPreferences() async {
+  Future<void> initializeSharedPreferences() async {
     prefs = await SharedPreferences.getInstance();
   }
 
@@ -275,10 +275,11 @@ class _OffersPageState extends State<OffersPage> {
     if(prefs.getString('stores') == null || prefs.getString('stores')!.isEmpty) {
       fetchStores();
     }
-    //prefs.setString('favoriteOffers', "[]");
+    prefs.setString('favoriteOffers', "[]");
     if(prefs.getString('storeId') == null || prefs.getString('storeId')!.isEmpty) {
       prefs.setString('storeId', 'DE3940');
     }
+    
     List<Product> cachedOffers = await getCachedOffers();
     if (cachedOffers.isNotEmpty && prefs.getString('offersDate${prefs.getString('storeId') ?? 'DE3940'}') != null && DateTime.now().difference(DateTime.parse(prefs.getString('offersDate${prefs.getString('storeId') ?? 'DE3940'}')!)).inDays < 7) {
       defaultSorting = cachedOffers;
@@ -390,6 +391,7 @@ class _OffersPageState extends State<OffersPage> {
             String description = "";
             String category = "";
             String unit = "";
+            String gtin = "";
             //print("Processing offer: $offer");
             if ((offer['discount'] > 0 || selectedOffersTitle == "02_Obst__Gemuese__Pflanzen") && offer['discount'] != null) {
               String discount = "${offer['discount']}%";
@@ -402,9 +404,10 @@ class _OffersPageState extends State<OffersPage> {
               imageUrl = offer['listImage'] ?? 'https://picsum.photos/250?image=9';
               description = offer['detailDescription'] ?? '';
               unit = offer['unit'] ?? '';
+              gtin = offer['GTIN'] ?? '';
               category = FilterType.values.elementAt(selectedOffers.indexOf(selectedOffersTitle)+1).toString().split('.').last;
-              if(!offersFinal.contains(Product(title: detailTitle, price: currentPrice, discount: discount, basePrice: basePrice, oldPrice: oldPrice, imageUrl: imageUrl, description: description, category: category, unit: unit))) {
-                offersFinal.add(Product(title: detailTitle, price: currentPrice, discount: discount, basePrice: basePrice, oldPrice: oldPrice, imageUrl: imageUrl, description: description, category: category, unit: unit));
+              if(!offersFinal.contains(Product(title: detailTitle, price: currentPrice, discount: discount, basePrice: basePrice, oldPrice: oldPrice, imageUrl: imageUrl, description: description, category: category, unit: unit, gtin: gtin))) {
+                offersFinal.add(Product(title: detailTitle, price: currentPrice, discount: discount, basePrice: basePrice, oldPrice: oldPrice, imageUrl: imageUrl, description: description, category: category, unit: unit, gtin: gtin));
               }
             }
           }
@@ -481,7 +484,8 @@ class _OffersPageState extends State<OffersPage> {
         imageUrl: json['imageUrl'],
         description: json['description'],
         category: json['category'],
-        unit: json['unit']
+        unit: json['unit'],
+        gtin: json['gtin'],
       )).toList();
     }
     return [];
@@ -692,6 +696,7 @@ class Product {
   final String description;
   final String category;
   final String unit;
+  final String gtin;
 
   Product({
     required this.title,
@@ -703,6 +708,7 @@ class Product {
     required this.description,
     required this.category,
     required this.unit,
+    required this.gtin,
   });
 
   Product.fromJson(Map<String, dynamic> json)
@@ -714,7 +720,8 @@ class Product {
         imageUrl = json['imageUrl'],
         description = json['description'],
         category = json['category'],
-        unit = json['unit'];
+        unit = json['unit'],
+        gtin = json['gtin'];
 
   Map<String, dynamic> toJson() {
     return {
@@ -727,6 +734,7 @@ class Product {
       'description': description,
       'category': category,
       'unit': unit,
+      'gtin': gtin,
     };
   }
 }

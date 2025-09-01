@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:kaufi_allert_v2/pages/select_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:workmanager/workmanager.dart';
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
@@ -34,15 +35,16 @@ class _SettingsPageState extends State<SettingsPage> {
     position: [13.7812778, 51.044094],
     country: 'DE',
   );
+  bool notificationsEnabled = false;
   late SharedPreferences prefs;
-  initializeSharedPreferences() async {
+  Future<void> initializeSharedPreferences() async {
     prefs = await SharedPreferences.getInstance();
+    notificationsEnabled = prefs.getBool('notificationsEnabled') ?? true;
   }
 
   @override
   void initState() {
     super.initState();
-    getClosestStores();
     getUserPosition().then((position) {
       if (mounted) {
         setState(() {
@@ -50,6 +52,7 @@ class _SettingsPageState extends State<SettingsPage> {
         });
       }
     });
+    getClosestStores();
   }
 
   @override
@@ -123,6 +126,51 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
           ),
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text("Notifications", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold))),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+            child: ListTile(
+              title: const Text("Enable Notifications", 
+                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.normal)),
+              trailing: Switch(
+                value: notificationsEnabled,
+                onChanged: (bool value) async {
+                  setState(() {
+                    notificationsEnabled = value;
+                  });
+                  await prefs.setBool('notificationsEnabled', value);
+                  
+                  // Enable or disable background tasks based on user preference
+                  if (value) {
+                    await Workmanager().registerPeriodicTask(
+                      'checkOffers',
+                      'checkNewOffers',
+                      frequency: Duration(hours: 24),
+                      constraints: Constraints(
+                        networkType: NetworkType.connected,
+                      ),
+                      existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
+                    );
+                  } else {
+                    await Workmanager().cancelByUniqueName('checkOffers');
+                  }
+                },
+                activeColor: const Color.fromARGB(255, 97, 70, 71),
+                inactiveThumbColor: Colors.grey,
+                inactiveTrackColor: Colors.grey[800],
+              ),
+              subtitle: const Text(
+                "Get notified when new offers are available.",
+                style: TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -164,10 +212,35 @@ class _SettingsPageState extends State<SettingsPage> {
     if (cachedData != null && cachedData.isNotEmpty) {
       List<dynamic> jsonList = json.decode(cachedData);
       stores = jsonList.map((json) => Store.fromJson(json)).toList();
-      Position position = await Geolocator.getCurrentPosition(locationSettings: LocationSettings(accuracy: LocationAccuracy.high));
+      Position position = Position(
+        latitude: 0.0,
+        longitude: 0.0,
+        timestamp: DateTime.now(),
+        accuracy: 0.0,
+        altitude: 0.0,
+        speed: 0.0,
+        speedAccuracy: 0.0,
+        heading: 0.0,
+        altitudeAccuracy: 0.0,
+        headingAccuracy: 0.0,
+      );
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission != LocationPermission.deniedForever) {
+        if (serviceEnabled) {
+          if (permission == LocationPermission.denied) {
+            permission = await Geolocator.requestPermission();
+          } else if (permission != LocationPermission.denied) {
+            try {
+              position = await Geolocator.getCurrentPosition(locationSettings: LocationSettings(accuracy: LocationAccuracy.high));
+            } catch (e) {
+              print("Error getting user position: $e");
+            }
+          }
+        }
+      }
       double userLatitude = position.latitude;
       double userLongitude = position.longitude;
-      //WidgetsBinding.instance.platformDispatcher.locale.countryCode
       List<Store> localStores = List<Store>.from(stores).where((store) => store.country == WidgetsBinding.instance.platformDispatcher.locale.countryCode && store.storeId != prefs.getString('storeId')).toList();
       localStores.sort((a, b) {
         double distanceA = a.getDistance(userLatitude, userLongitude);

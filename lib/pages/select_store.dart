@@ -43,24 +43,24 @@ class _SelectStoreState extends State<SelectStore> {
 
   late SharedPreferences prefs;
 
-  initializeSharedPreferences() async {
+  Future<void> initializeSharedPreferences() async {
     prefs = await SharedPreferences.getInstance();
   }
 
   @override
   void initState() {
     super.initState();
-    getClosestStores().then((_){
-      if (mounted) {
-        setState(() {
-          filteredStores = stores;
-        });
-      }
-    });
     getUserPosition().then((position) {
       if(mounted) {
         setState(() {
           userPosition = position;
+        });
+      }
+    });
+    getClosestStores().then((_){
+      if (mounted) {
+        setState(() {
+          filteredStores = stores;
         });
       }
     });
@@ -243,10 +243,36 @@ class _SelectStoreState extends State<SelectStore> {
     if (cachedData != null && cachedData.isNotEmpty) {
       List<dynamic> jsonList = json.decode(cachedData);
       stores = jsonList.map((json) => Store.fromJson(json)).toList();
-      Position position = await Geolocator.getCurrentPosition(locationSettings: LocationSettings(accuracy: LocationAccuracy.high));
+      Position position = Position(
+        latitude: 0.0,
+        longitude: 0.0,
+        timestamp: DateTime.now(),
+        accuracy: 0.0,
+        altitude: 0.0,
+        speed: 0.0,
+        speedAccuracy: 0.0,
+        heading: 0.0,
+        altitudeAccuracy: 0.0,
+        headingAccuracy: 0.0,
+      );
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission != LocationPermission.deniedForever) {
+        if (serviceEnabled) {
+          if (permission == LocationPermission.denied) {
+            permission = await Geolocator.requestPermission();
+          } else if (permission != LocationPermission.denied) {
+            try {
+              position = await Geolocator.getCurrentPosition(locationSettings: LocationSettings(accuracy: LocationAccuracy.high));
+            } catch (e) {
+              print("Error getting user position: $e");
+            }
+          }
+        }
+      }
       double userLatitude = position.latitude;
       double userLongitude = position.longitude;
-      List<Store> localStores = List<Store>.from(stores).where((store) => store.country == "DE" && store.storeId != prefs.getString('storeId')).toList();
+      List<Store> localStores = List<Store>.from(stores).where((store) => store.country == WidgetsBinding.instance.platformDispatcher.locale.countryCode && store.storeId != prefs.getString('storeId')).toList();
       localStores.sort((a, b) {
         double distanceA = a.getDistance(userLatitude, userLongitude);
         double distanceB = b.getDistance(userLatitude, userLongitude);

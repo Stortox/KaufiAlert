@@ -14,7 +14,7 @@ class SearchStore extends StatefulWidget {
 class _SearchStoreState extends State<SearchStore> {
 
   late SharedPreferences prefs;
-  initializeSharedPreferences() async {
+  Future<void> initializeSharedPreferences() async {
     prefs = await SharedPreferences.getInstance();
   }
 

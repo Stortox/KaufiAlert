@@ -4,9 +4,33 @@ import 'package:kaufi_allert_v2/pages/offer_detail.dart';
 import 'package:kaufi_allert_v2/pages/offers_page.dart';
 import 'package:kaufi_allert_v2/pages/select_store.dart';
 import 'package:kaufi_allert_v2/pages/settings_screen.dart';
+import 'package:kaufi_allert_v2/services/notification_service.dart';
+import 'package:workmanager/workmanager.dart';
 
 void main() async {
-  runApp(MainApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize the notification service
+  final notificationService = NotificationService();
+  await notificationService.init();
+  
+  // Initialize Workmanager
+  await Workmanager().initialize(
+    callbackDispatcher,
+  );
+  
+  // Schedule periodic task to check for new offers
+  await Workmanager().registerPeriodicTask(
+    'checkOffers',
+    'checkNewOffers',
+    frequency: Duration(hours: 24), // Daily check
+    constraints: Constraints(
+      networkType: NetworkType.connected,
+    ),
+    existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
+  );
+  
+  runApp(const MainApp());
 }
 
 class MainApp extends StatelessWidget {
