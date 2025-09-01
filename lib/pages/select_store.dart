@@ -133,7 +133,7 @@ class _SelectStoreState extends State<SelectStore> {
                               });
                               prefs.setBool('dynamicStoreEnabled', value);
                             },
-                            activeColor: Theme.of(context).primaryColor,
+                            activeThumbColor: Theme.of(context).primaryColor,
                           ),
                         ],
                       ),

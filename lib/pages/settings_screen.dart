@@ -161,7 +161,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     await Workmanager().cancelByUniqueName('checkOffers');
                   }
                 },
-                activeColor: const Color.fromARGB(255, 97, 70, 71),
+                activeThumbColor: const Color.fromARGB(255, 97, 70, 71),
                 inactiveThumbColor: Colors.grey,
                 inactiveTrackColor: Colors.grey[800],
               ),
