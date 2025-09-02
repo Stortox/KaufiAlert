@@ -257,21 +257,23 @@ class _OfferDetailState extends State<OfferDetail> {
               Row(
                 children: [
                   Expanded(
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 10.0),
-                        child: Text(
-                            widget.product.basePrice.replaceFirst(')', '€)'),
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.white,
+                    child: widget.product.unit.indexOf("je kg").isNegative
+                        ? Align(
+                            alignment: Alignment.centerLeft,
+                            child: Padding(
+                              padding: const EdgeInsets.only(left: 10.0),
+                              child: Text(
+                                widget.product.basePrice.replaceFirst(')', '€)'),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.white,
+                                ),
+                                textAlign: TextAlign.start,
+                                overflow: TextOverflow.visible,
+                              ),
                             ),
-                          textAlign: TextAlign.start,
-                          overflow: TextOverflow.visible,
-                        ),
-                      ),
-                    ),
+                          )
+                        : SizedBox.shrink(),
                   ),
                   if (widget.product.oldPrice.isNotEmpty && widget.product.oldPrice != "0.00€")
                   Align(
@@ -313,11 +315,30 @@ class _OfferDetailState extends State<OfferDetail> {
                           ),
                         ),
                       ),
+                      if(ingredientsText.isNotEmpty)
                       GestureDetector(
                       onTap: () async {
-                        final url = 'https://world.openfoodfacts.org/product/${widget.product.gtin}';
-                        if (await canLaunchUrl(Uri.parse(url))) {
-                          await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+                        final gtin = widget.product.gtin;
+                        if (gtin.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Keine Produktcode verfügbar')),
+                          );
+                          return;
+                        }
+                        
+                        final url = 'https://world.openfoodfacts.org/product/$gtin';
+                        final uri = Uri.parse(url);
+                        
+                        try {
+                          if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Konnte URL nicht öffnen: $url')),
+                            );
+                          }
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Fehler beim Öffnen der URL: $e')),
+                          );
                         }
                       },
                       child: Row(
@@ -435,21 +456,35 @@ class _OfferDetailState extends State<OfferDetail> {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final nutriments = data['product']['nutriments'] ?? {};
-      print(nutriments);
       List<String> nutrimentNames = [];
       List<String> nutrimentValues = [];
       List<String> nutrimentUnit = [];
       List<MapEntry<String, dynamic>> nutrimentsList = [];
       for(var nutriment in nutriments.entries) {
-        if(!nutriment.key.contains("-") && !nutriment.key.contains("_")){
+        if(nutriment.key.toString().contains("energy") && !nutriment.key.toString().contains("kcal")){
+          continue;
+        }
+        if(!nutriment.key.toString().contains("-") && !nutriment.key.toString().contains("_")) {
           nutrimentNames.add(nutriment.key.toString()[0].toUpperCase() + nutriment.key.toString().substring(1));
-        } else if(nutriment.key.contains("100g") || nutriment.key.contains("serving")) {
-          nutrimentValues.add(nutriment.value.toString());
+        } else if (nutriment.key.toString() == "energy-kcal") {
+          nutrimentNames.add(nutriment.key.toString()[0].toUpperCase() + nutriment.key.toString().substring(1, nutriment.key.toString().indexOf("-kcal")));
+        } else if(nutriment.key.toString().contains("100g")) {
+          if(nutriment.value.toString().contains(".")){
+            if(nutriment.value.toString().substring(nutriment.value.toString().indexOf(".") + 1).length > 3){
+              nutrimentValues.add(nutriment.value.toString().substring(0, (nutriment.value.toString().indexOf(".") + 3)));
+            } else {
+              nutrimentValues.add(nutriment.value.toString());
+            }
+          } else {
+            nutrimentValues.add(nutriment.value.toString().substring(0, nutriment.value.toString().length > 4 ? 4 : nutriment.value.toString().length));
+          }
         } else if(nutriment.key.contains("unit")) {
           nutrimentUnit.add(nutriment.value);
         }
       }
-      nutrimentsList.addAll(nutrimentNames.map((name) => MapEntry(name, '${nutrimentValues[nutrimentNames.indexOf(name)]} ${nutrimentUnit[nutrimentNames.indexOf(name)]}')));
+      if(!(nutrimentNames.length > nutrimentUnit.length) && !(nutrimentNames.length > nutrimentValues.length)) {
+        nutrimentsList.addAll(nutrimentNames.map((name) => MapEntry(name, '${nutrimentValues[nutrimentNames.indexOf(name)]} ${nutrimentUnit[nutrimentNames.indexOf(name)]}')));
+      }
       return nutrimentsList;
     }
     return [];
