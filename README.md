@@ -64,7 +64,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ```bash
 # Clone this repository
-git clone https://github.com/stortox/kaufi_alert_v2.git
+git clone https://github.com/stortox/KaufiAlert.git
 
 # Navigate to the project directory
 cd kaufi_alert_v2
