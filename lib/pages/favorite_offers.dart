@@ -1,6 +1,7 @@
 /// This file contains the implementation of the Favorite Offers screen
 /// It displays a grid of product offers that the user has saved as favorites
 /// and indicates whether those offers are still available in the current store
+library;
 import 'dart:convert';
 
 import 'package:cached_network_image/cached_network_image.dart';

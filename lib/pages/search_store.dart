@@ -3,6 +3,7 @@
 /// This file implements a search interface for Kaufland stores, allowing users
 /// to quickly find and select a store by name. The selected store becomes
 /// the active store for viewing offers and is persisted between sessions.
+library;
 import 'dart:convert';
 
 import 'package:flutter/material.dart';

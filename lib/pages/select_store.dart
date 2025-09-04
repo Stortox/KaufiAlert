@@ -5,6 +5,7 @@
 /// - Search for stores by name
 /// - Toggle automatic store selection based on location
 /// - View store details including distance, address and opening hours
+library;
 import 'dart:convert';
 
 import 'package:flutter/material.dart';

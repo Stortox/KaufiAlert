@@ -4,6 +4,7 @@
 /// - View and change their selected Kaufland store
 /// - Toggle notification preferences for new offers
 /// - See current location-based information and store details
+library;
 import 'dart:convert';
 
 import 'package:flutter/material.dart';

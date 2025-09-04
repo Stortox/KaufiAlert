@@ -1,5 +1,6 @@
 /// Main entry point for the Kaufi Alert application
 /// Initializes essential services and defines the app's navigation structure
+library;
 import 'package:flutter/material.dart';
 import 'package:kaufi_alert_v2/pages/main_screen.dart';
 import 'package:kaufi_alert_v2/pages/offer_detail.dart';
