@@ -1,6 +1,6 @@
 {
-    "name": "kaufi_allert_v2",
-    "short_name": "kaufi_allert_v2",
+    "name": "kaufi_alert_v2",
+    "short_name": "kaufi_alert_v2",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
