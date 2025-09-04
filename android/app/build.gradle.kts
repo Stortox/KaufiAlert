@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.stortox.kaufi_allert_v2"
+    namespace = "com.stortox.kaufi_alert_v2"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "27.0.12077973"
 
@@ -21,7 +21,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.stortox.kaufi_allert_v2"
+        applicationId = "com.stortox.kaufi_alert_v2"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

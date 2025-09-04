@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:kaufi_allert_v2/pages/favorite_offers.dart';
-import 'package:kaufi_allert_v2/pages/offers_page.dart';
-import 'package:kaufi_allert_v2/pages/settings_screen.dart';
+import 'package:kaufi_alert_v2/pages/favorite_offers.dart';
+import 'package:kaufi_alert_v2/pages/offers_page.dart';
+import 'package:kaufi_alert_v2/pages/settings_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});

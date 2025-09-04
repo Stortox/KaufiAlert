@@ -5,10 +5,10 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = kaufi_allert_v2
+PRODUCT_NAME = kaufi_alert_v2
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.stortox.kaufiAllertV2
+PRODUCT_BUNDLE_IDENTIFIER = com.stortox.kaufiAlertV2
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2025 com.stortox. All rights reserved.

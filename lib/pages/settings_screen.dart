@@ -1,10 +1,21 @@
+/// Settings Screen
+/// 
+/// This file implements the settings page where users can:
+/// - View and change their selected Kaufland store
+/// - Toggle notification preferences for new offers
+/// - See current location-based information and store details
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:kaufi_allert_v2/pages/select_store.dart';
+import 'package:kaufi_alert_v2/pages/select_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:workmanager/workmanager.dart';
+
+/// SettingsPage displays user preferences and store selection options
+///
+/// This widget allows users to configure app-wide settings that persist
+/// between sessions using SharedPreferences
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
@@ -13,8 +24,11 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-
+  /// List of all available stores
   List<Store> stores = [];
+  
+  /// Current user's geographical position
+  /// Used for calculating distance to stores
   Position userPosition = Position(
     latitude: 0.0,
     longitude: 0.0,
@@ -27,16 +41,27 @@ class _SettingsPageState extends State<SettingsPage> {
     altitudeAccuracy: 0.0,
     headingAccuracy: 0.0,
   );
+  
+  /// Default store used when no store has been selected yet
   Store selectedStore = Store(
-    storeId: 'DE3940',
+    storeId: 'DE3283',
     name: 'Kaufland Dresden-Striesen-West',
     address: 'Borsbergstraße 35, Dresden',
     openingHours: 'Mon: 09:00-20:00, Tue: 09:00-20:00, Wed: 09:00-20:00, Thu: 09:00-20:00, Fri: 09:00-20:00, Sat: 09:00-20:00, Sun: 0:00-0:00',
     position: [13.7812778, 51.044094],
     country: 'DE',
   );
+  
+  /// Flag to control whether notifications are enabled
   bool notificationsEnabled = false;
+  
+  /// SharedPreferences instance for data persistence
   late SharedPreferences prefs;
+  
+  /// Initialize SharedPreferences and load saved settings
+  /// 
+  /// Retrieves user preferences from local storage, including
+  /// notification preferences
   Future<void> initializeSharedPreferences() async {
     prefs = await SharedPreferences.getInstance();
     notificationsEnabled = prefs.getBool('notificationsEnabled') ?? true;
@@ -45,6 +70,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
+    // Get user location when screen initializes
     getUserPosition().then((position) {
       if (mounted) {
         setState(() {
@@ -52,6 +78,7 @@ class _SettingsPageState extends State<SettingsPage> {
         });
       }
     });
+    // Load nearby stores based on location
     getClosestStores();
   }
 
@@ -72,12 +99,14 @@ class _SettingsPageState extends State<SettingsPage> {
       body: Column(
         children: [
           const SizedBox(height: 20),
+          // Section header for selected store
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text("Selected Store", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold))),
           ),
+          // Display the currently selected store
           FutureBuilder<Store>(
             future: getSelectedStore(),
             builder: (context, snapshot) {
@@ -105,6 +134,7 @@ class _SettingsPageState extends State<SettingsPage> {
               }
             },
           ),
+          // Button to navigate to store selection screen
           GestureDetector(
             onTap: () {
               _openSelectStore(context);
@@ -127,12 +157,14 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
           const SizedBox(height: 20),
+          // Section header for notification settings
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text("Notifications", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold))),
           ),
+          // Toggle switch for enabling/disabling notifications
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4.0),
             child: ListTile(
@@ -148,6 +180,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   
                   // Enable or disable background tasks based on user preference
                   if (value) {
+                    // Schedule periodic background task for checking new offers
                     await Workmanager().registerPeriodicTask(
                       'checkOffers',
                       'checkNewOffers',
@@ -158,6 +191,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
                     );
                   } else {
+                    // Cancel background task if notifications are disabled
                     await Workmanager().cancelByUniqueName('checkOffers');
                   }
                 },
@@ -176,6 +210,10 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  /// Retrieves the user's current geographic position
+  /// 
+  /// Handles location permission requests and service availability checks.
+  /// Returns a default position if location services are unavailable.
   Future<Position> getUserPosition() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     LocationPermission permission = await Geolocator.checkPermission();
@@ -192,6 +230,7 @@ class _SettingsPageState extends State<SettingsPage> {
         }
       }
     }
+    // Return default position if unable to get location
     return Position(
       latitude: 0.0,
       longitude: 0.0,
@@ -206,12 +245,19 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  /// Gets the closest stores to the user's current location
+  /// 
+  /// Loads stores from cache, sorts them by distance to user,
+  /// and returns the three closest stores in the user's country.
   Future<List<Store>> getClosestStores() async {
     await initializeSharedPreferences();
     String? cachedData = prefs.getString('stores');
     if (cachedData != null && cachedData.isNotEmpty) {
+      // Parse store data from cache
       List<dynamic> jsonList = json.decode(cachedData);
       stores = jsonList.map((json) => Store.fromJson(json)).toList();
+      
+      // Default position in case location services are unavailable
       Position position = Position(
         latitude: 0.0,
         longitude: 0.0,
@@ -224,6 +270,8 @@ class _SettingsPageState extends State<SettingsPage> {
         altitudeAccuracy: 0.0,
         headingAccuracy: 0.0,
       );
+      
+      // Try to get the user's current location
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission != LocationPermission.deniedForever) {
@@ -239,31 +287,48 @@ class _SettingsPageState extends State<SettingsPage> {
           }
         }
       }
+      
+      // Use the position to sort stores by distance
       double userLatitude = position.latitude;
       double userLongitude = position.longitude;
-      List<Store> localStores = List<Store>.from(stores).where((store) => store.country == WidgetsBinding.instance.platformDispatcher.locale.countryCode && store.storeId != prefs.getString('storeId')).toList();
+      
+      // Filter stores to only include those in user's country and not the currently selected store
+      List<Store> localStores = List<Store>.from(stores).where((store) => 
+        store.country == WidgetsBinding.instance.platformDispatcher.locale.countryCode && 
+        store.storeId != prefs.getString('storeId')
+      ).toList();
+      
+      // Sort by distance (closest first)
       localStores.sort((a, b) {
         double distanceA = a.getDistance(userLatitude, userLongitude);
         double distanceB = b.getDistance(userLatitude, userLongitude);
         return distanceA.compareTo(distanceB);
       });
 
+      // Return the 3 closest stores
       return localStores.take(3).toList();
     }
     return [];
   }
 
+  /// Retrieves the currently selected store from preferences
+  /// 
+  /// If no store has been selected yet, sets and returns the default store
   Future<Store> getSelectedStore() async {
     await initializeSharedPreferences();
     String? selectedStoreJson = prefs.getString('selectedStore');
     if (selectedStoreJson != null && selectedStoreJson.isNotEmpty) {
       return Store.fromJson(json.decode(selectedStoreJson));
     }
+    // Set default store if none is selected
     prefs.setString('selectedStore', json.encode(selectedStore.toJson()));
     prefs.setString('storeId', selectedStore.storeId);
     return selectedStore;
   }
 
+  /// Opens the store selection screen and handles the result
+  /// 
+  /// When a store is selected, triggers a UI update to reflect the change
   void _openSelectStore(BuildContext context) async {
     final selectedStore = await Navigator.push(
       context,
@@ -275,6 +340,9 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 }
 
+/// Builds a ListTile widget to display store information
+/// 
+/// Shows store name, address, distance from user, and today's opening hours
 Widget buildStoreTile(Store store, Position? userPosition, BuildContext context, SharedPreferences prefs) {
   return Padding(
     padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -286,16 +354,19 @@ Widget buildStoreTile(Store store, Position? userPosition, BuildContext context,
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              // Store address with overflow handling
               SizedBox(
                 width: MediaQuery.of(context).size.width - 200,
                 child: Text(store.address, style: TextStyle(color: Colors.white, fontSize: 12), overflow: TextOverflow.ellipsis,),
               ),
+              // Distance from user's location
               userPosition != null ? Text(
                 "${store.getDistance(userPosition.latitude, userPosition.longitude).toStringAsFixed(2)} km",
                 style: TextStyle(color: Colors.white, fontSize: 12),
               ) : Text("Distance not available", style: TextStyle(color: Colors.white, fontSize: 12)),
             ],
           ),
+          // Today's opening hours
           Text(store.getOpeningHoursForToday(store), style: TextStyle(color: Colors.white, fontSize: 11)),
         ],
       ),
@@ -313,12 +384,27 @@ Widget buildStoreTile(Store store, Position? userPosition, BuildContext context,
   );
 }
 
+/// Store model class representing a Kaufland store location
+/// 
+/// Contains store details, location data, and methods for
+/// calculating distance and retrieving opening hours
 class Store {
+  /// Unique identifier for the store
   final String storeId;
+  
+  /// Display name of the store
   final String name;
+  
+  /// Full address of the store
   final String address;
+  
+  /// Weekly opening hours in format: "Mon: HH:MM-HH:MM, Tue: HH:MM-HH:MM, ..."
   final String openingHours;
+  
+  /// Geographic coordinates [longitude, latitude]
   final List<double> position;
+  
+  /// ISO country code (e.g., "DE" for Germany)
   final String country;
 
   Store({
@@ -330,6 +416,7 @@ class Store {
     required this.country,
   });
 
+  /// Creates a Store instance from JSON data
   factory Store.fromJson(Map<String, dynamic> json) {
     return Store(
       storeId: json['storeId'],
@@ -341,6 +428,7 @@ class Store {
     );
   }
 
+  /// Converts this Store instance to a JSON map
   Map<String, dynamic> toJson() {
     return {
       'storeId': storeId,
@@ -353,21 +441,30 @@ class Store {
     };
   }
 
+  /// Calculates the distance in kilometers between the store and given coordinates
   double getDistance(double userLatitude, double userLongitude) {
     return Geolocator.distanceBetween(userLatitude, userLongitude, position[0], position[1])/1000;
   }
 
+  /// Gets the opening hours for today based on the current day of the week
+  /// 
+  /// Returns a formatted string showing today's opening hours
+  /// or "Closed" if the store is not open today
   String getOpeningHoursForToday(Store store) {
     DateTime now = DateTime.now();
     String weekday = now.weekday.toString(); // 1 = Monday, 7 = Sunday
     if (store.openingHours.isEmpty) {
       return "no information available";
     }
+    
+    // Parse the opening hours string into individual day segments
     List<String> hours = store.openingHours.split(",");
     for(var i = 0; i < hours.length; i++) {
       hours[i] = hours[i].substring(hours[i].indexOf(" ") + 1);
     }
+    
     String openingHours = "Closed";
+    // Get the appropriate opening hours based on the current day
     if (weekday == "1") {
       openingHours = hours[0].trim();
     } else if (weekday == "2") {
@@ -383,6 +480,8 @@ class Store {
     } else if (weekday == "7") {
       openingHours = hours[6].trim();
     }
+    
+    // Special case for closed days (0:00-0:00)
     if(openingHours == "0:00-0:00"){
       openingHours = "Closed";
     }

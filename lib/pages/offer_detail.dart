@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:kaufi_allert_v2/pages/offers_page.dart';
+import 'package:kaufi_alert_v2/pages/offers_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -43,16 +43,17 @@ class _OfferDetailState extends State<OfferDetail> {
     initializeSharedPreferences().then((_) {
       initializeFavoriteOffers();
     });
-    http.get(Uri.parse('https://world.openfoodfacts.org/api/v2/product/${widget.product.gtin}.json')).then((response) {
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        setState(() {
-          ingredientsText = data['product']['ingredients_text_with_allergens_de'] ?? '';
-        });
-      }
-    });
-    formatIngredientsText(ingredientsText);
-    getOpenFoodFactsGtin(widget.product.gtin);
+    if(widget.product.gtin.isNotEmpty){
+      http.get(Uri.parse('https://world.openfoodfacts.org/api/v2/product/${widget.product.gtin}.json')).then((response) {
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          setState(() {
+            ingredientsText = data['product']['ingredients_text_with_allergens_de'] ?? '';
+          });
+        }
+      });
+      formatIngredientsText(ingredientsText);
+    }
   }
 
   @override
@@ -297,6 +298,7 @@ class _OfferDetailState extends State<OfferDetail> {
                 ],
               ),
               const SizedBox(height: 20),
+              if(widget.product.gtin.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: Column(
@@ -371,13 +373,14 @@ class _OfferDetailState extends State<OfferDetail> {
               ),
               ),
               const SizedBox(height: 20),
+              if(widget.product.gtin.isNotEmpty)
               FutureBuilder(future: getOpenFoodFactsGtin(widget.product.gtin), builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return CircularProgressIndicator();
                 } else if (snapshot.hasError) {
                   return Text('Error: ${snapshot.error}');
                 } else {
-                  final nutriments = snapshot.data as List<MapEntry<String, dynamic>>;
+                  final nutrients = snapshot.data as List<MapEntry<String, dynamic>>;
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8.0),
                     child: Column(
@@ -405,11 +408,11 @@ class _OfferDetailState extends State<OfferDetail> {
                           height: 20,
                         ),
                         Builder(builder: (context) {
-                          if (nutriments.isNotEmpty) {
+                          if (nutrients.isNotEmpty) {
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              children: nutriments.map((entry) {
-                                return IngredientTile([entry]);
+                              children: nutrients.map((entry) {
+                                return ingredientTile([entry]);
                               }).toList(),
                             );
                           } else {
@@ -455,39 +458,43 @@ class _OfferDetailState extends State<OfferDetail> {
     final response = await http.get(Uri.parse('https://world.openfoodfacts.org/api/v2/product/$gtin.json'));
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      final nutriments = data['product']['nutriments'] ?? {};
-      List<String> nutrimentNames = [];
-      List<String> nutrimentValues = [];
-      List<String> nutrimentUnit = [];
-      List<MapEntry<String, dynamic>> nutrimentsList = [];
-      for(var nutriment in nutriments.entries) {
-        if(nutriment.key.toString().contains("energy") && !nutriment.key.toString().contains("kcal")){
-          continue;
-        }
-        if(!nutriment.key.toString().contains("-") && !nutriment.key.toString().contains("_")) {
-          nutrimentNames.add(nutriment.key.toString()[0].toUpperCase() + nutriment.key.toString().substring(1));
-        } else if (nutriment.key.toString() == "energy-kcal") {
-          nutrimentNames.add(nutriment.key.toString()[0].toUpperCase() + nutriment.key.toString().substring(1, nutriment.key.toString().indexOf("-kcal")));
-        } else if(nutriment.key.toString().contains("100g")) {
-          if(nutriment.value.toString().contains(".")){
-            if(nutriment.value.toString().substring(nutriment.value.toString().indexOf(".") + 1).length > 3){
-              nutrimentValues.add(nutriment.value.toString().substring(0, (nutriment.value.toString().indexOf(".") + 3)));
-            } else {
-              nutrimentValues.add(nutriment.value.toString());
-            }
-          } else {
-            nutrimentValues.add(nutriment.value.toString().substring(0, nutriment.value.toString().length > 4 ? 4 : nutriment.value.toString().length));
+      final nutrients = data['product']['nutriments'] ?? {};
+      final defaultNutrients = ["carbohydrates", "energy", "fat", "proteins", "salt", "saturated-fat", "sodium", "sugars"];
+      List<String> nutrientNames = [];
+      List<String> nutrientValues = [];
+      List<String> nutrientUnit = [];
+      List<MapEntry<String, dynamic>> nutrientsList = [];
+      for(var nutrient in nutrients.entries) {
+        if(defaultNutrients.contains(nutrient.key.toString().substring(0, nutrient.key.toString().contains("-") ? nutrient.key.toString().indexOf("-") : nutrient.key.toString().contains("_") ? nutrient.key.toString().indexOf("_") : nutrient.key.toString().length))) {
+          if(nutrient.key.toString().contains("energy") && !nutrient.key.toString().contains("kcal")){
+            continue;
           }
-        } else if(nutriment.key.contains("unit")) {
-          nutrimentUnit.add(nutriment.value);
+          if(!nutrient.key.toString().contains("-") && !nutrient.key.toString().contains("_")) {
+            nutrientNames.add(nutrient.key.toString()[0].toUpperCase() + nutrient.key.toString().substring(1));
+          } else if (nutrient.key.toString() == "energy-kcal") {
+            nutrientNames.add(nutrient.key.toString()[0].toUpperCase() + nutrient.key.toString().substring(1, nutrient.key.toString().indexOf("-kcal")));
+          } else if(nutrient.key.toString().contains("100g")) {
+            if(nutrient.value.toString().contains(".")){
+              if(nutrient.value.toString().substring(nutrient.value.toString().indexOf(".") + 1).length > 3){
+                nutrientValues.add(nutrient.value.toString().substring(0, (nutrient.value.toString().indexOf(".") + 3)));
+              } else {
+                nutrientValues.add(nutrient.value.toString());
+              }
+            } else {
+              nutrientValues.add(nutrient.value.toString().substring(0, nutrient.value.toString().length > 4 ? 4 : nutrient.value.toString().length));
+            }
+          } else if(nutrient.key.contains("unit")) {
+            nutrientUnit.add(nutrient.value);
+          }
         }
       }
-      if(!(nutrimentNames.length > nutrimentUnit.length) && !(nutrimentNames.length > nutrimentValues.length)) {
-        nutrimentsList.addAll(nutrimentNames.map((name) => MapEntry(name, '${nutrimentValues[nutrimentNames.indexOf(name)]} ${nutrimentUnit[nutrimentNames.indexOf(name)]}')));
+      if(!(nutrientNames.length > nutrientUnit.length) && !(nutrientNames.length > nutrientValues.length)) {
+        nutrientsList.addAll(nutrientNames.map((name) => MapEntry(name, '${nutrientValues[nutrientNames.indexOf(name)]} ${nutrientUnit[nutrientNames.indexOf(name)]}')));
       }
-      return nutrimentsList;
+      return nutrientsList;
+    } else {
+      return [];
     }
-    return [];
   }
 }
 
@@ -505,7 +512,7 @@ String formatIngredientsText(String ingredientsText) {
   return words.join(' ');
 }
 
-Widget IngredientTile(List<MapEntry<String, dynamic>> ingredient) {
+Widget ingredientTile(List<MapEntry<String, dynamic>> ingredient) {
   return Padding(
     padding: const EdgeInsets.symmetric(vertical: 4.0),
     child: Column(

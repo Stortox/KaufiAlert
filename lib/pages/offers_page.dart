@@ -4,8 +4,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
-import 'package:kaufi_allert_v2/pages/offer_detail.dart';
-import 'package:kaufi_allert_v2/pages/settings_screen.dart';
+import 'package:kaufi_alert_v2/pages/offer_detail.dart';
+import 'package:kaufi_alert_v2/pages/settings_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum FilterType {
@@ -235,6 +235,9 @@ class _OffersPageState extends State<OffersPage> {
               ),
             ],
             const SizedBox(height: 8.0),
+            if(filteredProducts.isEmpty) 
+              const CircularProgressIndicator()
+            else
             Expanded(
               child: GridView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 5.0),
@@ -271,17 +274,12 @@ class _OffersPageState extends State<OffersPage> {
       });
     }
 
-    //prefs.setString('stores', "");
-    if(prefs.getString('stores') == null || prefs.getString('stores')!.isEmpty) {
-      fetchStores();
+    if(prefs.getString('storesLastFetched') == null || DateTime.now().difference(DateTime.parse(prefs.getString('storesLastFetched')!)).inDays > 7) {
+      await loadStores();
     }
-    prefs.setString('favoriteOffers', "[]");
-    if(prefs.getString('storeId') == null || prefs.getString('storeId')!.isEmpty) {
-      prefs.setString('storeId', 'DE3940');
-    }
-    
+
     List<Product> cachedOffers = await getCachedOffers();
-    if (cachedOffers.isNotEmpty && prefs.getString('offersDate${prefs.getString('storeId') ?? 'DE3940'}') != null && DateTime.now().difference(DateTime.parse(prefs.getString('offersDate${prefs.getString('storeId') ?? 'DE3940'}')!)).inDays < 7) {
+    if (cachedOffers.isNotEmpty && prefs.getString('offersDate${prefs.getString('storeId') ?? prefs.getString('defaultStoreId')}') != null && DateTime.now().difference(DateTime.parse(prefs.getString('offersDate${prefs.getString('storeId') ?? prefs.getString('defaultStoreId')}')!)).inDays < 7) {
       defaultSorting = cachedOffers;
       return cachedOffers;
     } else {
@@ -372,10 +370,13 @@ class _OffersPageState extends State<OffersPage> {
     //print("Fetching offers from API");
     var selectedOffers = ["02_Obst__Gemuese__Pflanzen", "01_Fleisch__Gefluegel__Wurst", "01a_Frischer_Fisch", "03_Molkereiprodukte__Fette", "04_Tiefkuehlkost", "05_Feinkost__Konserven", "06_Grundnahrungsmittel", "07_Kaffee__Tee__Suesswaren__Knabberartikel", "08_Getraenke__Spirituosen", "708_Backshop", "562_Bio"];
     List<Product> offersFinal = <Product>[];
-    var url = Uri.https('app.kaufland.net', '/data/api/v5/offers/${prefs.getString('storeId') ?? 'DE3940'}');
+    var url = Uri.https('app.kaufland.net', '/data/api/v5/offers/${prefs.getString('storeId') ?? prefs.getString('defaultStoreId')}');
     var response = await http.get(url, headers: {"Authorization": "Basic S0lTLUtMQVBQOkRyZWNrc3pldWdfMzUyOS1BY2h0c3BubmVy"});
+    if(response.statusCode != 200) {
+      throw Exception("Failed to load offers");
+    }
     List<dynamic> jsonObject = jsonDecode(response.body);
-    prefs.setString('offersDate${prefs.getString('storeId') ?? 'DE3940'}', DateTime.parse(jsonObject[0]['categories'][0]['dateFrom']).toIso8601String());
+    prefs.setString('offersDate${prefs.getString('storeId') ?? prefs.getString('defaultStoreId')}', DateTime.parse(jsonObject[0]['categories'][0]['dateFrom']).toIso8601String());
     var categories = jsonObject[0]['categories'];
     for (int i = 0; i < categories.length; i++) {
       String title = categories[i]['name'];
@@ -415,15 +416,15 @@ class _OffersPageState extends State<OffersPage> {
       }
     }
 
-    prefs.setString('offersFinal${prefs.getString('storeId') ?? 'DE3940'}', json.encode(offersFinal.map((product) => product.toJson()).toList()));
+    prefs.setString('offersFinal${prefs.getString('storeId') ?? prefs.getString('defaultStoreId') ?? prefs.getString('defaultStoreId')}', json.encode(offersFinal.map((product) => product.toJson()).toList()));
     defaultSorting = offersFinal;
     return offersFinal;
   }
 
-  void fetchStores() async {
+  Future<void> fetchStores() async {
     var url = Uri.https('app.kaufland.net', '/data/api/v2/stores');
     var response = await http.get(url, headers: {"Authorization": "Basic S0lTLUtMQVBQOkRyZWNrc3pldWdfMzUyOS1BY2h0c3BubmVy"});
-    
+
     List<dynamic> storeList = json.decode(response.body);
     List<Store> stores = [];
     
@@ -457,6 +458,9 @@ class _OffersPageState extends State<OffersPage> {
         position: [storeData['latitude'], storeData['longitude']],
         country: storeData['country'],
       ));
+      if(storeData['latitude'] == 51.044094 && storeData['longitude'] == 13.7812778 && (prefs.getString('defaultStoreId') == null || prefs.getString('defaultStoreId')!.isEmpty)) {
+        await prefs.setString('defaultStoreId', storeData['storeId']);
+      }
     }
     
     prefs.setString('stores', json.encode(stores.map((store) => {
@@ -472,7 +476,7 @@ class _OffersPageState extends State<OffersPage> {
 
   Future<List<Product>> getCachedOffers() async {
     //print("Fetching cached offers from SharedPreferences");
-    String? cachedData = prefs.getString('offersFinal${prefs.getString('storeId') ?? 'DE3940'}');
+    String? cachedData = prefs.getString('offersFinal${prefs.getString('storeId') ?? prefs.getString('defaultStoreId')}');
     if (cachedData != null) {
       List<dynamic> jsonList = json.decode(cachedData);
       return jsonList.map((json) => Product(
@@ -593,98 +597,108 @@ class _OffersPageState extends State<OffersPage> {
     }
     return sortBy;
   }
+
+  Future<void> loadStores() async {
+    //prefs.setString('stores', "");
+    await fetchStores();
+    //prefs.setString('favoriteOffers', "[]");
+    if(prefs.getString('storeId') == null || prefs.getString('storeId')!.isEmpty) {
+      prefs.setString('storeId', prefs.getString('defaultStoreId') ?? '');
+    }
+    prefs.setString('storesLastFetched', DateTime.now().toIso8601String());
+  }
 }
 
 Widget offerCard(Product product, BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.pushNamed(
-          context, 
-          '/offerDetail',
-          arguments: product,
-        );
-      },
-      child: SizedBox(
-        width: (MediaQuery.of(context).size.width - 20) / 2,
-        height: MediaQuery.of(context).size.height * 0.5,
-        child: Card(
-          color: const Color(0xFF1f1415),
-          child: Column(
-            children: [
-              Stack(
-                children: [
-                  Center(
-                    child: Hero(
-                      tag: product.imageUrl,
-                      child: Container(
-                        width: (MediaQuery.of(context).size.width - 20) / 2,
-                        height: MediaQuery.of(context).size.height * 0.2,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10.0),
-                        ),
-                        child: Center(
-                          child: SizedBox(
-                            width: (MediaQuery.of(context).size.width - 20) / 2 - 20,
-                            height: MediaQuery.of(context).size.height * 0.2 - 20,
-                            child: CachedNetworkImage(
-                              imageUrl: product.imageUrl,
-                              fit: BoxFit.contain,
-                              placeholder: (context, url) => CircularProgressIndicator(),
-                              errorWidget: (context, url, error) => Icon(Icons.broken_image, color: Colors.grey),
-                            )
-                          ),
+  return GestureDetector(
+    onTap: () {
+      Navigator.pushNamed(
+        context, 
+        '/offerDetail',
+        arguments: product,
+      );
+    },
+    child: SizedBox(
+      width: (MediaQuery.of(context).size.width - 20) / 2,
+      height: MediaQuery.of(context).size.height * 0.5,
+      child: Card(
+        color: const Color(0xFF1f1415),
+        child: Column(
+          children: [
+            Stack(
+              children: [
+                Center(
+                  child: Hero(
+                    tag: product.imageUrl,
+                    child: Container(
+                      width: (MediaQuery.of(context).size.width - 20) / 2,
+                      height: MediaQuery.of(context).size.height * 0.2,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10.0),
+                      ),
+                      child: Center(
+                        child: SizedBox(
+                          width: (MediaQuery.of(context).size.width - 20) / 2 - 20,
+                          height: MediaQuery.of(context).size.height * 0.2 - 20,
+                          child: CachedNetworkImage(
+                            imageUrl: product.imageUrl,
+                            fit: BoxFit.contain,
+                            placeholder: (context, url) => CircularProgressIndicator(),
+                            errorWidget: (context, url, error) => Icon(Icons.broken_image, color: Colors.grey),
+                          )
                         ),
                       ),
                     ),
                   ),
-                  if(int.parse(product.discount.replaceAll("%", "").replaceAll("-", "").trim()) > 0)
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(5.0),
-                      ),
-                      child: Text(
-                        "-${product.discount}",
-                        style: const TextStyle(color: Colors.white, fontSize: 15),
-                      ),
+                ),
+                if(int.parse(product.discount.replaceAll("%", "").replaceAll("-", "").trim()) > 0)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(5.0),
+                    ),
+                    child: Text(
+                      "-${product.discount}",
+                      style: const TextStyle(color: Colors.white, fontSize: 15),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      product.title,
+                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 23.0),
+                    child: Text(
+                      product.price,
+                      style: const TextStyle(color: Colors.amber, fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        product.title,
-                        style: const TextStyle(color: Colors.white, fontSize: 16),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 23.0),
-                      child: Text(
-                        product.price,
-                        style: const TextStyle(color: Colors.amber, fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
 class Product {
   final String title;
