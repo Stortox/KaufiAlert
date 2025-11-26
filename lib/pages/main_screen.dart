@@ -13,17 +13,13 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = [
-    OffersPage(),
-    FavoriteOffers(),
-    SettingsPage(),
-  ];
+  final List<Widget> _pages = [OffersPage(), FavoriteOffers(), SettingsPage()];
 
   void _onItemTapped(int index) {
-    if(mounted){
-    setState(() {
-      _currentIndex = index;
-    });
+    if (mounted) {
+      setState(() {
+        _currentIndex = index;
+      });
     }
   }
 
@@ -34,8 +30,14 @@ class _MainScreenState extends State<MainScreen> {
       bottomNavigationBar: BottomNavigationBar(
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.percent), label: 'Offers'),
-          BottomNavigationBarItem(icon: Icon(Icons.favorite), label: 'Favorites'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.favorite),
+            label: 'Favorites',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
         ],
         selectedItemColor: Colors.amber,
         unselectedItemColor: Colors.white,

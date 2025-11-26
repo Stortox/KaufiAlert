@@ -2,6 +2,7 @@
 /// It displays a grid of product offers that the user has saved as favorites
 /// and indicates whether those offers are still available in the current store
 library;
+
 import 'dart:convert';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -22,13 +23,13 @@ class _FavoriteOffersState extends State<FavoriteOffers> {
   late SharedPreferences prefs;
   List<FavouriteProduct> favoriteOffers = [];
   List<FavouriteProduct> filteredFavoriteOffers = [];
-  
+
   // Current filter selection
   FilterType currentFilter = FilterType.all;
-  
+
   // Sorting options
   String currentSorting = 'category';
-  
+
   // List of available sorting options
   final List<Map<String, dynamic>> sortOptions = [
     {'label': 'Category', 'value': 'category'},
@@ -37,10 +38,10 @@ class _FavoriteOffersState extends State<FavoriteOffers> {
     {'label': 'Highest discount', 'value': 'discount'},
     {'label': 'Available first', 'value': 'available'},
   ];
-  
+
   // Filter cache to improve performance
   final Map<FilterType, List<FavouriteProduct>> _filteredProductsCache = {};
-  
+
   // Flag to control filter expansion
   bool filtersExpanded = false;
 
@@ -52,11 +53,11 @@ class _FavoriteOffersState extends State<FavoriteOffers> {
   /// Initializes favorite offers list
   Future<void> initializeFavoriteOffers() async {
     favoriteOffers = await getFavoriteOffers();
-    if(mounted) {
+    if (mounted) {
       setState(() {
         // Initialize filtered offers with all offers
         filteredFavoriteOffers = favoriteOffers;
-        
+
         // Apply initial sorting based on saved preferences
         getSortingBy().then((value) {
           currentSorting = value;
@@ -90,7 +91,7 @@ class _FavoriteOffersState extends State<FavoriteOffers> {
   }
 
   /// Retrieves the saved sorting preference
-  /// 
+  ///
   /// Returns:
   ///   [String] The current sorting preference (defaults to 'category')
   Future<String> getSortingBy() async {
@@ -99,7 +100,7 @@ class _FavoriteOffersState extends State<FavoriteOffers> {
   }
 
   /// Saves the current sorting preference
-  /// 
+  ///
   /// Parameters:
   ///   [sortBy] - The sorting option to save
   Future<void> setSortingBy(String sortBy) async {
@@ -109,7 +110,7 @@ class _FavoriteOffersState extends State<FavoriteOffers> {
   /// Applies a filter to the favorite offers
   /// Uses a cache to improve performance on repeated filter operations
   void _applyFilter(FilterType filter) {
-    if(mounted) {
+    if (mounted) {
       setState(() {
         currentFilter = filter;
 
@@ -120,15 +121,15 @@ class _FavoriteOffersState extends State<FavoriteOffers> {
           _applySorting(currentSorting);
           return;
         }
-        
+
         // Calculate and cache results
         filteredFavoriteOffers = favoriteOffers.where((product) {
-          return filter == FilterType.all || 
-                 filter.toString().split('.').last == product.category;
+          return filter == FilterType.all ||
+              filter.toString().split('.').last == product.category;
         }).toList();
 
         _filteredProductsCache[filter] = filteredFavoriteOffers;
-        
+
         // Apply current sorting to filtered results
         _applySorting(currentSorting);
       });
@@ -136,54 +137,81 @@ class _FavoriteOffersState extends State<FavoriteOffers> {
   }
 
   /// Applies sorting to the filtered favorite offers
-  /// 
+  ///
   /// Parameters:
   ///   [sortBy] - The sorting option to apply
   void _applySorting(String sortBy) {
-    if(!mounted) return;
-    
+    if (!mounted) return;
+
     setState(() {
-      switch(sortBy) {
+      switch (sortBy) {
         case 'category':
           // Sort by category
-          filteredFavoriteOffers.sort((a, b) => a.category.compareTo(b.category));
+          filteredFavoriteOffers.sort(
+            (a, b) => a.category.compareTo(b.category),
+          );
           break;
-          
+
         case 'priceLow':
           // Sort by price (low to high)
           filteredFavoriteOffers.sort((a, b) {
-            double priceA = double.tryParse(a.price.replaceAll('€', '').replaceAll(',', '.').trim()) ?? 0.0;
-            double priceB = double.tryParse(b.price.replaceAll('€', '').replaceAll(',', '.').trim()) ?? 0.0;
+            double priceA =
+                double.tryParse(
+                  a.price.replaceAll('€', '').replaceAll(',', '.').trim(),
+                ) ??
+                0.0;
+            double priceB =
+                double.tryParse(
+                  b.price.replaceAll('€', '').replaceAll(',', '.').trim(),
+                ) ??
+                0.0;
             return priceA.compareTo(priceB);
           });
           break;
-          
+
         case 'priceHigh':
           // Sort by price (high to low)
           filteredFavoriteOffers.sort((a, b) {
-            double priceA = double.tryParse(a.price.replaceAll('€', '').replaceAll(',', '.').trim()) ?? 0.0;
-            double priceB = double.tryParse(b.price.replaceAll('€', '').replaceAll(',', '.').trim()) ?? 0.0;
+            double priceA =
+                double.tryParse(
+                  a.price.replaceAll('€', '').replaceAll(',', '.').trim(),
+                ) ??
+                0.0;
+            double priceB =
+                double.tryParse(
+                  b.price.replaceAll('€', '').replaceAll(',', '.').trim(),
+                ) ??
+                0.0;
             return priceB.compareTo(priceA);
           });
           break;
-          
+
         case 'discount':
           // Sort by discount (highest first)
           filteredFavoriteOffers.sort((a, b) {
-            int discountA = int.tryParse(a.discount.replaceAll('%', '').replaceAll('-', '').trim()) ?? 0;
-            int discountB = int.tryParse(b.discount.replaceAll('%', '').replaceAll('-', '').trim()) ?? 0;
+            int discountA =
+                int.tryParse(
+                  a.discount.replaceAll('%', '').replaceAll('-', '').trim(),
+                ) ??
+                0;
+            int discountB =
+                int.tryParse(
+                  b.discount.replaceAll('%', '').replaceAll('-', '').trim(),
+                ) ??
+                0;
             return discountB.compareTo(discountA);
           });
           break;
-          
+
         case 'available':
           // Sort by availability (available first)
-          filteredFavoriteOffers.sort((a, b) => 
-            b.stillAvailable.compareTo(a.stillAvailable));
+          filteredFavoriteOffers.sort(
+            (a, b) => b.stillAvailable.compareTo(a.stillAvailable),
+          );
           break;
       }
     });
-    
+
     // Save the current sorting preference
     setSortingBy(sortBy);
   }
@@ -195,7 +223,9 @@ class _FavoriteOffersState extends State<FavoriteOffers> {
         label,
         style: TextStyle(
           color: (currentFilter == filterType ? Colors.black : Colors.white),
-          fontWeight: (currentFilter == filterType ? FontWeight.bold : FontWeight.normal),
+          fontWeight: (currentFilter == filterType
+              ? FontWeight.bold
+              : FontWeight.normal),
         ),
       ),
       selected: currentFilter == filterType,
@@ -217,13 +247,19 @@ class _FavoriteOffersState extends State<FavoriteOffers> {
   /// Creates a sort chip widget for sorting selection
   Widget _buildSortChip(Map<String, dynamic> option, String selectedSort) {
     return Padding(
-      padding: option['value'] != sortOptions.last['value'] ? const EdgeInsets.only(right: 8.0) : EdgeInsets.zero,
+      padding: option['value'] != sortOptions.last['value']
+          ? const EdgeInsets.only(right: 8.0)
+          : EdgeInsets.zero,
       child: FilterChip(
         label: Text(
           option['label'],
           style: TextStyle(
-            color: selectedSort == option['value'] ? Colors.black : Colors.white,
-            fontWeight: selectedSort == option['value'] ? FontWeight.bold : FontWeight.normal,
+            color: selectedSort == option['value']
+                ? Colors.black
+                : Colors.white,
+            fontWeight: selectedSort == option['value']
+                ? FontWeight.bold
+                : FontWeight.normal,
           ),
         ),
         selected: selectedSort == option['value'],
@@ -252,7 +288,10 @@ class _FavoriteOffersState extends State<FavoriteOffers> {
     return Scaffold(
       backgroundColor: const Color(0xFF1f1415),
       appBar: AppBar(
-        title: const Text("Favorite Offers", style: TextStyle(color: Colors.white)),
+        title: const Text(
+          "Favorite Offers",
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: const Color(0xFF1f1415),
         iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,
@@ -260,7 +299,7 @@ class _FavoriteOffersState extends State<FavoriteOffers> {
       body: Center(
         child: Column(
           children: [
-            if(favoriteOffers.isEmpty) ...[
+            if (favoriteOffers.isEmpty) ...[
               // Display a message when no favorites are found
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 80.0),
@@ -278,11 +317,12 @@ class _FavoriteOffersState extends State<FavoriteOffers> {
               GestureDetector(
                 onTap: () {
                   setState(() {
-                  filtersExpanded = !filtersExpanded;
+                    filtersExpanded = !filtersExpanded;
                   });
                 },
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end, // Align to the right
+                  mainAxisAlignment:
+                      MainAxisAlignment.end, // Align to the right
                   children: [
                     Text(
                       "Filters",
@@ -296,7 +336,7 @@ class _FavoriteOffersState extends State<FavoriteOffers> {
                   ],
                 ),
               ),
-                
+
               // Expandable filters section (Categories + Sorting)
               if (filtersExpanded) ...[
                 // Categories section
@@ -305,7 +345,14 @@ class _FavoriteOffersState extends State<FavoriteOffers> {
                   padding: const EdgeInsets.symmetric(horizontal: 8.0),
                   child: Align(
                     alignment: Alignment.centerLeft,
-                    child: Text("Categories", style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                    child: Text(
+                      "Categories",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
                 SingleChildScrollView(
@@ -316,9 +363,15 @@ class _FavoriteOffersState extends State<FavoriteOffers> {
                     children: <Widget>[
                       _buildFilterChip('All', FilterType.all),
                       const SizedBox(width: 8.0),
-                      _buildFilterChip('Fruits & Vegetables', FilterType.fruitAndVegetables),
+                      _buildFilterChip(
+                        'Fruits & Vegetables',
+                        FilterType.fruitAndVegetables,
+                      ),
                       const SizedBox(width: 8.0),
-                      _buildFilterChip('Meat & Poultry', FilterType.meatAndPoultry),
+                      _buildFilterChip(
+                        'Meat & Poultry',
+                        FilterType.meatAndPoultry,
+                      ),
                       const SizedBox(width: 8.0),
                       _buildFilterChip('Fish', FilterType.fish),
                       const SizedBox(width: 8.0),
@@ -330,7 +383,10 @@ class _FavoriteOffersState extends State<FavoriteOffers> {
                       const SizedBox(width: 8.0),
                       _buildFilterChip('Staple Foods', FilterType.stapleFoods),
                       const SizedBox(width: 8.0),
-                      _buildFilterChip('Coffee, Tea, Sweets & Snacks', FilterType.coffeeTeaSweetsSnacks),
+                      _buildFilterChip(
+                        'Coffee, Tea, Sweets & Snacks',
+                        FilterType.coffeeTeaSweetsSnacks,
+                      ),
                       const SizedBox(width: 8.0),
                       _buildFilterChip('Beverages', FilterType.beverages),
                       const SizedBox(width: 8.0),
@@ -340,13 +396,20 @@ class _FavoriteOffersState extends State<FavoriteOffers> {
                     ],
                   ),
                 ),
-                
+
                 // Sorting section
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8.0),
                   child: Align(
                     alignment: Alignment.centerLeft,
-                    child: Text("Sort Offers By", style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                    child: Text(
+                      "Sort Offers By",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
                 FutureBuilder<String>(
@@ -358,7 +421,8 @@ class _FavoriteOffersState extends State<FavoriteOffers> {
                       padding: const EdgeInsets.symmetric(horizontal: 8.0),
                       child: Row(
                         children: sortOptions.map((option) {
-                          if(currentFilter != FilterType.all && option['value'] == 'category') {
+                          if (currentFilter != FilterType.all &&
+                              option['value'] == 'category') {
                             return const SizedBox.shrink();
                           } else {
                             return _buildSortChip(option, selectedSort);
@@ -398,18 +462,22 @@ class _FavoriteOffersState extends State<FavoriteOffers> {
   /// by comparing with the current store's active offers
   Future<List<FavouriteProduct>> getFavoriteOffers() async {
     String? favoriteOffers = prefs.getString('favoriteOffers');
-    if(prefs.getString('storeId') == null || prefs.getString('storeId')!.isEmpty) {
+    if (prefs.getString('storeId') == null ||
+        prefs.getString('storeId')!.isEmpty) {
       prefs.setString('storeId', 'DE3283');
     }
     // Get current offers from the selected store
     List<Product> cachedOffers = await getCachedOffers();
-    if (favoriteOffers != null && favoriteOffers.isNotEmpty && cachedOffers.isNotEmpty) {
+    if (favoriteOffers != null &&
+        favoriteOffers.isNotEmpty &&
+        cachedOffers.isNotEmpty) {
       List<dynamic> jsonList = jsonDecode(favoriteOffers);
       List<FavouriteProduct> favoriteProducts = jsonList.map((json) {
         // Check if the favorite offer is still available in current offers
-        bool isAvailable = cachedOffers.any((offerJson) =>
-          offerJson.title == json['title'] &&
-          offerJson.imageUrl == json['imageUrl']
+        bool isAvailable = cachedOffers.any(
+          (offerJson) =>
+              offerJson.title == json['title'] &&
+              offerJson.imageUrl == json['imageUrl'],
         );
         return FavouriteProduct(
           title: json['title'],
@@ -422,7 +490,9 @@ class _FavoriteOffersState extends State<FavoriteOffers> {
           category: json['category'],
           unit: json['unit'],
           gtin: json['gtin'],
-          stillAvailable: isAvailable ? "true" : "false", // Mark availability status
+          stillAvailable: isAvailable
+              ? "true"
+              : "false", // Mark availability status
         );
       }).toList();
       return favoriteProducts;
@@ -432,21 +502,27 @@ class _FavoriteOffersState extends State<FavoriteOffers> {
 
   /// Retrieves cached offers for the currently selected store
   Future<List<Product>> getCachedOffers() async {
-    String? cachedData = prefs.getString('offersFinal${prefs.getString('storeId') ?? prefs.getString('defaultStoreId')}');
+    String? cachedData = prefs.getString(
+      'offersFinal${prefs.getString('storeId') ?? prefs.getString('defaultStoreId')}',
+    );
     if (cachedData != null) {
       List<dynamic> jsonList = json.decode(cachedData);
-      return jsonList.map((json) => Product(
-        title: json['title'],
-        price: json['price'],
-        discount: json['discount'],
-        basePrice: json['basePrice'],
-        oldPrice: json['oldPrice'],
-        imageUrl: json['imageUrl'],
-        description: json['description'],
-        category: json['category'],
-        unit: json['unit'],
-        gtin: json['gtin']
-      )).toList();
+      return jsonList
+          .map(
+            (json) => Product(
+              title: json['title'],
+              price: json['price'],
+              discount: json['discount'],
+              basePrice: json['basePrice'],
+              oldPrice: json['oldPrice'],
+              imageUrl: json['imageUrl'],
+              description: json['description'],
+              category: json['category'],
+              unit: json['unit'],
+              gtin: json['gtin'],
+            ),
+          )
+          .toList();
     }
     return [];
   }
@@ -459,7 +535,7 @@ Widget offerCard(FavouriteProduct product, BuildContext context) {
     onTap: () {
       // Navigate to offer detail screen when tapped
       Navigator.pushNamed(
-        context, 
+        context,
         '/offerDetail',
         arguments: product.toProduct(),
       );
@@ -474,94 +550,127 @@ Widget offerCard(FavouriteProduct product, BuildContext context) {
             child: Column(
               children: [
                 Stack(
-                children: [
-                  // Product image with hero animation for smooth transitions
-                  Center(
-                    child: Hero(
-                      tag: product.imageUrl,
-                      child: Container(
-                        width: (MediaQuery.of(context).size.width - 20) / 2,
-                        height: MediaQuery.of(context).size.height * 0.2,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10.0),
-                        ),
-                        child: Center(
-                          child: SizedBox(
-                            width: (MediaQuery.of(context).size.width - 20) / 2 - 20,
-                            height: MediaQuery.of(context).size.height * 0.2 - 20,
-                            child: CachedNetworkImage(
-                              imageUrl: product.imageUrl,
-                              fit: BoxFit.contain,
-                              placeholder: (context, url) => CircularProgressIndicator(),
-                              errorWidget: (context, url, error) => Icon(Icons.broken_image, color: Colors.grey),
-                            )
+                  children: [
+                    // Product image with hero animation for smooth transitions
+                    Center(
+                      child: Hero(
+                        tag: product.imageUrl,
+                        child: Container(
+                          width: (MediaQuery.of(context).size.width - 20) / 2,
+                          height: MediaQuery.of(context).size.height * 0.2,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
+                          child: Center(
+                            child: SizedBox(
+                              width:
+                                  (MediaQuery.of(context).size.width - 20) / 2 -
+                                  20,
+                              height:
+                                  MediaQuery.of(context).size.height * 0.2 - 20,
+                              child: CachedNetworkImage(
+                                imageUrl: product.imageUrl,
+                                fit: BoxFit.contain,
+                                placeholder: (context, url) =>
+                                    CircularProgressIndicator(),
+                                errorWidget: (context, url, error) => Icon(
+                                  Icons.broken_image,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  // Discount badge (only shown if discount > 0)
-                  if(int.parse(product.discount.replaceAll("%", "").replaceAll("-", "").trim()) > 0)
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(5.0),
+                    // Discount badge (only shown if discount > 0)
+                    if (int.parse(
+                          product.discount
+                              .replaceAll("%", "")
+                              .replaceAll("-", "")
+                              .trim(),
+                        ) >
+                        0)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(5.0),
+                          ),
+                          child: Text(
+                            "-${product.discount}",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
                       ),
-                      child: Text(
-                        "-${product.discount}",
-                        style: const TextStyle(color: Colors.white, fontSize: 15),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              // Product title and price
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        product.title,
-                        style: const TextStyle(color: Colors.white, fontSize: 16),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 23.0),
-                      child: Text(
-                        product.price,
-                        style: const TextStyle(color: Colors.amber, fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                    ),
                   ],
                 ),
-              ),
-            ],
+                // Product title and price
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          product.title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 23.0),
+                        child: Text(
+                          product.price,
+                          style: const TextStyle(
+                            color: Colors.amber,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        // Availability badge (green for available, red for unavailable)
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-          child: Card(
-            color: product.stillAvailable == "true" ? Colors.green : Colors.red,
-            margin: const EdgeInsets.only(top: 5.0),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-              child: Text(
-                product.stillAvailable == "true" ? "Available" : "Currently Not Available",
-                style: const TextStyle(color: Colors.white, fontSize: 12),
+          // Availability badge (green for available, red for unavailable)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+            child: Card(
+              color: product.stillAvailable == "true"
+                  ? Colors.green
+                  : Colors.red,
+              margin: const EdgeInsets.only(top: 5.0),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8.0,
+                  vertical: 4.0,
+                ),
+                child: Text(
+                  product.stillAvailable == "true"
+                      ? "Available"
+                      : "Currently Not Available",
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                ),
               ),
             ),
           ),
-        ),
         ],
       ),
     ),
@@ -599,17 +708,17 @@ class FavouriteProduct {
 
   /// Create a FavouriteProduct from JSON data
   FavouriteProduct.fromJson(Map<String, dynamic> json)
-      : title = json['title'],
-        price = json['price'],
-        discount = json['discount'],
-        basePrice = json['basePrice'],
-        oldPrice = json['oldPrice'],
-        imageUrl = json['imageUrl'],
-        description = json['description'],
-        category = json['category'],
-        unit = json['unit'],
-        gtin = json['gtin'],
-        stillAvailable = json['stillAvailable'];
+    : title = json['title'],
+      price = json['price'],
+      discount = json['discount'],
+      basePrice = json['basePrice'],
+      oldPrice = json['oldPrice'],
+      imageUrl = json['imageUrl'],
+      description = json['description'],
+      category = json['category'],
+      unit = json['unit'],
+      gtin = json['gtin'],
+      stillAvailable = json['stillAvailable'];
 
   /// Convert FavouriteProduct to JSON for storage
   Map<String, dynamic> toJson() {
@@ -658,5 +767,5 @@ enum FilterType {
   coffeeTeaSweetsSnacks,
   beverages,
   bakery,
-  organic
+  organic,
 }

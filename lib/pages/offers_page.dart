@@ -20,11 +20,10 @@ enum FilterType {
   coffeeTeaSweetsSnacks,
   beverages,
   bakery,
-  organic
+  organic,
 }
 
 class OffersPage extends StatefulWidget {
-
   const OffersPage({super.key});
 
   @override
@@ -32,7 +31,6 @@ class OffersPage extends StatefulWidget {
 }
 
 class _OffersPageState extends State<OffersPage> {
-
   FilterType currentFilter = FilterType.all;
   List<Product> filteredProducts = [];
   List<Product> products = [];
@@ -50,7 +48,7 @@ class _OffersPageState extends State<OffersPage> {
   bool filtersExpanded = false;
 
   bool dynamicStoreEnabled = false;
-  
+
   late SharedPreferences prefs;
   Future<void> initializeSharedPreferences() async {
     prefs = await SharedPreferences.getInstance();
@@ -62,7 +60,7 @@ class _OffersPageState extends State<OffersPage> {
   void initState() {
     super.initState();
     fetchManager().then((value) {
-      if(mounted) {
+      if (mounted) {
         setState(() {
           products = sortProducts(value);
           filteredProducts = products;
@@ -76,7 +74,10 @@ class _OffersPageState extends State<OffersPage> {
     return Scaffold(
       backgroundColor: const Color(0xFF1f1415),
       appBar: AppBar(
-        title: const Text("Offers", style: TextStyle(color: Colors.white, fontSize: 24)),
+        title: const Text(
+          "Offers",
+          style: TextStyle(color: Colors.white, fontSize: 24),
+        ),
         backgroundColor: const Color(0xFF1f1415),
         iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,
@@ -89,12 +90,18 @@ class _OffersPageState extends State<OffersPage> {
               children: [
                 SearchAnchor(
                   viewBackgroundColor: const Color(0xFF412a2b),
-                  headerTextStyle: const TextStyle(color: Colors.white, fontSize: 18),
-                  viewLeading: IconButton(icon: Icon(Icons.arrow_back, color: Colors.white), onPressed: () {
-                    Navigator.pop(context);
-                    FocusScope.of(context).unfocus();
-                  }),
-                    builder: (context, controller) {
+                  headerTextStyle: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                  ),
+                  viewLeading: IconButton(
+                    icon: Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      FocusScope.of(context).unfocus();
+                    },
+                  ),
+                  builder: (context, controller) {
                     return Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8.0),
                       child: SearchBar(
@@ -103,8 +110,12 @@ class _OffersPageState extends State<OffersPage> {
                           EdgeInsets.symmetric(horizontal: 16.0),
                         ),
                         hintText: 'Search',
-                        backgroundColor: WidgetStateProperty.all(const Color(0xFF412a2b)),
-                        textStyle: WidgetStateProperty.all(const TextStyle(color: Colors.white)),
+                        backgroundColor: WidgetStateProperty.all(
+                          const Color(0xFF412a2b),
+                        ),
+                        textStyle: WidgetStateProperty.all(
+                          const TextStyle(color: Colors.white),
+                        ),
                         onTap: () {
                           controller.openView();
                         },
@@ -121,49 +132,59 @@ class _OffersPageState extends State<OffersPage> {
                         ),
                       ),
                     );
-                    },
+                  },
                   suggestionsBuilder: (context, controller) {
                     List<ListTile> listTiles = [];
                     final filteredProducts = products.where((product) {
                       if (controller.text.isEmpty) {
                         return false;
                       }
-                      return product.title.toLowerCase().contains(controller.text.toLowerCase());
+                      return product.title.toLowerCase().contains(
+                        controller.text.toLowerCase(),
+                      );
                     }).toList();
-                    for(var product in filteredProducts) {
-                      listTiles.add(ListTile(
-                        title: Text(
-                          product.title,
-                          style: const TextStyle(color: Colors.white),
+                    for (var product in filteredProducts) {
+                      listTiles.add(
+                        ListTile(
+                          title: Text(
+                            product.title,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    OfferDetail(product: product),
+                              ),
+                            );
+                          },
                         ),
-                        onTap: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => OfferDetail(product: product)));
-                        },
-                      ));
+                      );
                     }
                     return listTiles;
                   },
                 ),
                 const SizedBox(width: 4.0),
                 GestureDetector(
-                onTap: () {
-                  setState(() {
-                    filtersExpanded = !filtersExpanded;
-                  });
-                },
-                child: Row(
-                  children: [
-                    Text(
-                      "Filters",
-                      style: TextStyle(color: Colors.white, fontSize: 16),
-                    ),
-                    Icon(
-                      filtersExpanded ? Icons.expand_less : Icons.expand_more,
-                      color: Colors.white,
-                    ),
-                  ],
+                  onTap: () {
+                    setState(() {
+                      filtersExpanded = !filtersExpanded;
+                    });
+                  },
+                  child: Row(
+                    children: [
+                      Text(
+                        "Filters",
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
+                      Icon(
+                        filtersExpanded ? Icons.expand_less : Icons.expand_more,
+                        color: Colors.white,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
               ],
             ),
             if (filtersExpanded) ...[
@@ -172,7 +193,14 @@ class _OffersPageState extends State<OffersPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text("Categories", style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                  child: Text(
+                    "Categories",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
               SingleChildScrollView(
@@ -183,9 +211,15 @@ class _OffersPageState extends State<OffersPage> {
                   children: <Widget>[
                     _buildFilterChip('All', FilterType.all),
                     const SizedBox(width: 8.0),
-                    _buildFilterChip('Fruits & Vegetables', FilterType.fruitAndVegetables),
+                    _buildFilterChip(
+                      'Fruits & Vegetables',
+                      FilterType.fruitAndVegetables,
+                    ),
                     const SizedBox(width: 8.0),
-                    _buildFilterChip('Meat & Poultry', FilterType.meatAndPoultry),
+                    _buildFilterChip(
+                      'Meat & Poultry',
+                      FilterType.meatAndPoultry,
+                    ),
                     const SizedBox(width: 8.0),
                     _buildFilterChip('Fish', FilterType.fish),
                     const SizedBox(width: 8.0),
@@ -197,7 +231,10 @@ class _OffersPageState extends State<OffersPage> {
                     const SizedBox(width: 8.0),
                     _buildFilterChip('Staple Foods', FilterType.stapleFoods),
                     const SizedBox(width: 8.0),
-                    _buildFilterChip('Coffee, Tea, Sweets & Snacks', FilterType.coffeeTeaSweetsSnacks),
+                    _buildFilterChip(
+                      'Coffee, Tea, Sweets & Snacks',
+                      FilterType.coffeeTeaSweetsSnacks,
+                    ),
                     const SizedBox(width: 8.0),
                     _buildFilterChip('Beverages', FilterType.beverages),
                     const SizedBox(width: 8.0),
@@ -211,7 +248,14 @@ class _OffersPageState extends State<OffersPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text("Sort Offers By", style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                  child: Text(
+                    "Sort Offers By",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
               FutureBuilder<String>(
@@ -223,7 +267,8 @@ class _OffersPageState extends State<OffersPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 8.0),
                     child: Row(
                       children: sortOptions.map((option) {
-                        if(currentFilter != FilterType.all && option['value'] == 'category') {
+                        if (currentFilter != FilterType.all &&
+                            option['value'] == 'category') {
                           return const SizedBox.shrink();
                         } else {
                           return _buildSortChip(option, selectedSort);
@@ -235,25 +280,25 @@ class _OffersPageState extends State<OffersPage> {
               ),
             ],
             const SizedBox(height: 8.0),
-            if(filteredProducts.isEmpty) 
+            if (filteredProducts.isEmpty)
               const CircularProgressIndicator()
             else
-            Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 5.0),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 8.0,
-                  mainAxisSpacing: 8.0,
-                  childAspectRatio: 0.8,
+              Expanded(
+                child: GridView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 8.0,
+                    mainAxisSpacing: 8.0,
+                    childAspectRatio: 0.8,
+                  ),
+                  itemCount: filteredProducts.length,
+                  itemBuilder: (context, index) {
+                    Product product = filteredProducts[index];
+                    return offerCard(product, context);
+                  },
                 ),
-                itemCount: filteredProducts.length,
-                itemBuilder: (context, index) {
-                  Product product = filteredProducts[index];
-                  return offerCard(product, context);
-                },
               ),
-            ),
           ],
         ),
       ),
@@ -264,9 +309,9 @@ class _OffersPageState extends State<OffersPage> {
     await initializeSharedPreferences();
 
     dynamicStoreEnabled = prefs.getBool('dynamicStoreEnabled') ?? false;
-    if(dynamicStoreEnabled) {
+    if (dynamicStoreEnabled) {
       getDynamicStore().then((store) {
-        if(mounted) {
+        if (mounted) {
           setState(() {
             prefs.setString('storeId', store.storeId);
           });
@@ -274,12 +319,32 @@ class _OffersPageState extends State<OffersPage> {
       });
     }
 
-    if(prefs.getString('storesLastFetched') == null || DateTime.now().difference(DateTime.parse(prefs.getString('storesLastFetched')!)).inDays > 7) {
+    if (prefs.getString('storesLastFetched') == null ||
+        DateTime.now()
+                .difference(
+                  DateTime.parse(prefs.getString('storesLastFetched')!),
+                )
+                .inDays >
+            7) {
       await loadStores();
     }
 
     List<Product> cachedOffers = await getCachedOffers();
-    if (cachedOffers.isNotEmpty && prefs.getString('offersDate${prefs.getString('storeId') ?? prefs.getString('defaultStoreId')}') != null && DateTime.now().difference(DateTime.parse(prefs.getString('offersDate${prefs.getString('storeId') ?? prefs.getString('defaultStoreId')}')!)).inDays < 7) {
+    if (cachedOffers.isNotEmpty &&
+        prefs.getString(
+              'offersDate${prefs.getString('storeId') ?? prefs.getString('defaultStoreId')}',
+            ) !=
+            null &&
+        DateTime.now()
+                .difference(
+                  DateTime.parse(
+                    prefs.getString(
+                      'offersDate${prefs.getString('storeId') ?? prefs.getString('defaultStoreId')}',
+                    )!,
+                  ),
+                )
+                .inDays <
+            7) {
       defaultSorting = cachedOffers;
       return cachedOffers;
     } else {
@@ -288,7 +353,7 @@ class _OffersPageState extends State<OffersPage> {
   }
 
   void _applyFilter(FilterType filter) {
-    if(mounted){
+    if (mounted) {
       setState(() {
         currentFilter = filter;
 
@@ -297,11 +362,11 @@ class _OffersPageState extends State<OffersPage> {
           filteredProducts = _filteredProductsCache[filter]!;
           return;
         }
-        
+
         // Calculate and cache results
         filteredProducts = products.where((product) {
-          return filter == FilterType.all || 
-                  filter.toString().split('.').last == product.category;
+          return filter == FilterType.all ||
+              filter.toString().split('.').last == product.category;
         }).toList();
 
         _filteredProductsCache[filter] = filteredProducts;
@@ -315,7 +380,9 @@ class _OffersPageState extends State<OffersPage> {
         label,
         style: TextStyle(
           color: (currentFilter == filterType ? Colors.black : Colors.white),
-          fontWeight: (currentFilter == filterType ? FontWeight.bold : FontWeight.normal),
+          fontWeight: (currentFilter == filterType
+              ? FontWeight.bold
+              : FontWeight.normal),
         ),
       ),
       selected: currentFilter == filterType,
@@ -336,13 +403,19 @@ class _OffersPageState extends State<OffersPage> {
 
   Widget _buildSortChip(Map<String, String> option, String selectedSort) {
     return Padding(
-      padding: option['value'] != sortOptions.last['value'] ? const EdgeInsets.only(right: 8.0) : EdgeInsets.zero,
+      padding: option['value'] != sortOptions.last['value']
+          ? const EdgeInsets.only(right: 8.0)
+          : EdgeInsets.zero,
       child: FilterChip(
         label: Text(
           option['label']!,
           style: TextStyle(
-            color: selectedSort == option['value'] ? Colors.black : Colors.white,
-            fontWeight: selectedSort == option['value'] ? FontWeight.bold : FontWeight.normal,
+            color: selectedSort == option['value']
+                ? Colors.black
+                : Colors.white,
+            fontWeight: selectedSort == option['value']
+                ? FontWeight.bold
+                : FontWeight.normal,
           ),
         ),
         selected: selectedSort == option['value'],
@@ -361,22 +434,48 @@ class _OffersPageState extends State<OffersPage> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10.0),
           side: const BorderSide(color: Colors.black, width: 0),
-        )
+        ),
       ),
     );
   }
 
   Future<List<Product>> fetchData() async {
     //print("Fetching offers from API");
-    var selectedOffers = ["02_Obst__Gemuese__Pflanzen", "01_Fleisch__Gefluegel__Wurst", "01a_Frischer_Fisch", "03_Molkereiprodukte__Fette", "04_Tiefkuehlkost", "05_Feinkost__Konserven", "06_Grundnahrungsmittel", "07_Kaffee__Tee__Suesswaren__Knabberartikel", "08_Getraenke__Spirituosen", "708_Backshop", "562_Bio"];
+    var selectedOffers = [
+      "02_Obst__Gemuese__Pflanzen",
+      "01_Fleisch__Gefluegel__Wurst",
+      "01a_Frischer_Fisch",
+      "03_Molkereiprodukte__Fette",
+      "04_Tiefkuehlkost",
+      "05_Feinkost__Konserven",
+      "06_Grundnahrungsmittel",
+      "07_Kaffee__Tee__Suesswaren__Knabberartikel",
+      "08_Getraenke__Spirituosen",
+      "708_Backshop",
+      "562_Bio",
+    ];
     List<Product> offersFinal = <Product>[];
-    var url = Uri.https('app.kaufland.net', '/data/api/v5/offers/${prefs.getString('storeId') ?? prefs.getString('defaultStoreId')}');
-    var response = await http.get(url, headers: {"Authorization": "Basic S0lTLUtMQVBQOkRyZWNrc3pldWdfMzUyOS1BY2h0c3BubmVy"});
-    if(response.statusCode != 200) {
+    var url = Uri.https(
+      'app.kaufland.net',
+      '/data/api/v5/offers/${prefs.getString('storeId') ?? prefs.getString('defaultStoreId')}',
+    );
+    var response = await http.get(
+      url,
+      headers: {
+        "Authorization":
+            "Basic S0lTLUtMQVBQOkRyZWNrc3pldWdfMzUyOS1BY2h0c3BubmVy",
+      },
+    );
+    if (response.statusCode != 200) {
       throw Exception("Failed to load offers");
     }
     List<dynamic> jsonObject = jsonDecode(response.body);
-    prefs.setString('offersDate${prefs.getString('storeId') ?? prefs.getString('defaultStoreId')}', DateTime.parse(jsonObject[0]['categories'][0]['dateFrom']).toIso8601String());
+    prefs.setString(
+      'offersDate${prefs.getString('storeId') ?? prefs.getString('defaultStoreId')}',
+      DateTime.parse(
+        jsonObject[0]['categories'][0]['dateFrom'],
+      ).toIso8601String(),
+    );
     var categories = jsonObject[0]['categories'];
     for (int i = 0; i < categories.length; i++) {
       String title = categories[i]['name'];
@@ -394,7 +493,9 @@ class _OffersPageState extends State<OffersPage> {
             String unit = "";
             String gtin = "";
             //print("Processing offer: $offer");
-            if ((offer['discount'] > 0 || selectedOffersTitle == "02_Obst__Gemuese__Pflanzen") && offer['discount'] != null) {
+            if ((offer['discount'] > 0 ||
+                    selectedOffersTitle == "02_Obst__Gemuese__Pflanzen") &&
+                offer['discount'] != null) {
               String discount = "${offer['discount']}%";
               detailTitle = offer['title'] ?? '';
               detailTitle = "$detailTitle ${offer['subtitle'] ?? ''}";
@@ -402,13 +503,44 @@ class _OffersPageState extends State<OffersPage> {
               currentPrice = "${offer['formattedPrice'] ?? '0.00'}€";
               basePrice = offer['basePrice'] ?? '';
               oldPrice = "${offer['oldPrice'] ?? '0.00'}€";
-              imageUrl = offer['listImage'] ?? 'https://picsum.photos/250?image=9';
+              imageUrl =
+                  offer['listImage'] ?? 'https://picsum.photos/250?image=9';
               description = offer['detailDescription'] ?? '';
               unit = offer['unit'] ?? '';
               gtin = offer['GTIN'] ?? '';
-              category = FilterType.values.elementAt(selectedOffers.indexOf(selectedOffersTitle)+1).toString().split('.').last;
-              if(!offersFinal.contains(Product(title: detailTitle, price: currentPrice, discount: discount, basePrice: basePrice, oldPrice: oldPrice, imageUrl: imageUrl, description: description, category: category, unit: unit, gtin: gtin))) {
-                offersFinal.add(Product(title: detailTitle, price: currentPrice, discount: discount, basePrice: basePrice, oldPrice: oldPrice, imageUrl: imageUrl, description: description, category: category, unit: unit, gtin: gtin));
+              category = FilterType.values
+                  .elementAt(selectedOffers.indexOf(selectedOffersTitle) + 1)
+                  .toString()
+                  .split('.')
+                  .last;
+              if (!offersFinal.contains(
+                Product(
+                  title: detailTitle,
+                  price: currentPrice,
+                  discount: discount,
+                  basePrice: basePrice,
+                  oldPrice: oldPrice,
+                  imageUrl: imageUrl,
+                  description: description,
+                  category: category,
+                  unit: unit,
+                  gtin: gtin,
+                ),
+              )) {
+                offersFinal.add(
+                  Product(
+                    title: detailTitle,
+                    price: currentPrice,
+                    discount: discount,
+                    basePrice: basePrice,
+                    oldPrice: oldPrice,
+                    imageUrl: imageUrl,
+                    description: description,
+                    category: category,
+                    unit: unit,
+                    gtin: gtin,
+                  ),
+                );
               }
             }
           }
@@ -416,21 +548,30 @@ class _OffersPageState extends State<OffersPage> {
       }
     }
 
-    prefs.setString('offersFinal${prefs.getString('storeId') ?? prefs.getString('defaultStoreId') ?? prefs.getString('defaultStoreId')}', json.encode(offersFinal.map((product) => product.toJson()).toList()));
+    prefs.setString(
+      'offersFinal${prefs.getString('storeId') ?? prefs.getString('defaultStoreId') ?? prefs.getString('defaultStoreId')}',
+      json.encode(offersFinal.map((product) => product.toJson()).toList()),
+    );
     defaultSorting = offersFinal;
     return offersFinal;
   }
 
   Future<void> fetchStores() async {
     var url = Uri.https('app.kaufland.net', '/data/api/v2/stores');
-    var response = await http.get(url, headers: {"Authorization": "Basic S0lTLUtMQVBQOkRyZWNrc3pldWdfMzUyOS1BY2h0c3BubmVy"});
+    var response = await http.get(
+      url,
+      headers: {
+        "Authorization":
+            "Basic S0lTLUtMQVBQOkRyZWNrc3pldWdfMzUyOS1BY2h0c3BubmVy",
+      },
+    );
 
     List<dynamic> storeList = json.decode(response.body);
     List<Store> stores = [];
-    
+
     for (var storeData in storeList) {
       String address = "${storeData['street']}, ${storeData['city']}";
-      
+
       String openingHoursStr = "";
       if (storeData['openingHours'] != null) {
         List<dynamic> hours = storeData['openingHours'];
@@ -439,58 +580,89 @@ class _OffersPageState extends State<OffersPage> {
           int open = hour['open'];
           int close = hour['close'];
 
-          String openTime = "${open ~/ 100}:${open % 100 == 0 ? '00' : open % 100}";
-          String closeTime = "${close ~/ 100}:${close % 100 == 0 ? '00' : close % 100}";
-          
+          String openTime =
+              "${open ~/ 100}:${open % 100 == 0 ? '00' : open % 100}";
+          String closeTime =
+              "${close ~/ 100}:${close % 100 == 0 ? '00' : close % 100}";
+
           openingHoursStr += "$weekday: $openTime-$closeTime, ";
         }
 
         if (openingHoursStr.isNotEmpty) {
-          openingHoursStr = openingHoursStr.substring(0, openingHoursStr.length - 2);
+          openingHoursStr = openingHoursStr.substring(
+            0,
+            openingHoursStr.length - 2,
+          );
         }
       }
-      
-      stores.add(Store(
-        storeId: storeData['storeId'],
-        name: storeData['name'],
-        address: address,
-        openingHours: openingHoursStr,
-        position: [storeData['latitude'], storeData['longitude']],
-        country: storeData['country'],
-      ));
-      if(storeData['latitude'] == 51.044094 && storeData['longitude'] == 13.7812778 && (prefs.getString('defaultStoreId') == null || prefs.getString('defaultStoreId')!.isEmpty)) {
-        await prefs.setString('defaultStoreId', storeData['storeId']);
+      if (storeData['name'] != null &&
+          storeData['name'].toString().isNotEmpty &&
+          storeData['latitude'] != null &&
+          storeData['latitude'] != 0 &&
+          storeData['longitude'] != null &&
+          storeData['longitude'] != 0) {
+        stores.add(
+          Store(
+            storeId: storeData['storeId'],
+            name: storeData['name'],
+            address: address,
+            openingHours: openingHoursStr,
+            position: [storeData['latitude'], storeData['longitude']],
+            country: storeData['country'],
+          ),
+        );
+        if (storeData['latitude'] == 51.044094 &&
+            storeData['longitude'] == 13.7812778 &&
+            (prefs.getString('defaultStoreId') == null ||
+                prefs.getString('defaultStoreId')!.isEmpty)) {
+          await prefs.setString('defaultStoreId', storeData['storeId']);
+        }
       }
     }
-    
-    prefs.setString('stores', json.encode(stores.map((store) => {
-      'storeId': store.storeId,
-      'name': store.name,
-      'address': store.address,
-      'openingHours': store.openingHours,
-      'latitude': store.position[0],
-      'longitude': store.position[1],
-      'country': store.country,
-    }).toList()));
+
+    prefs.setString(
+      'stores',
+      json.encode(
+        stores
+            .map(
+              (store) => {
+                'storeId': store.storeId,
+                'name': store.name,
+                'address': store.address,
+                'openingHours': store.openingHours,
+                'latitude': store.position[0],
+                'longitude': store.position[1],
+                'country': store.country,
+              },
+            )
+            .toList(),
+      ),
+    );
   }
 
   Future<List<Product>> getCachedOffers() async {
     //print("Fetching cached offers from SharedPreferences");
-    String? cachedData = prefs.getString('offersFinal${prefs.getString('storeId') ?? prefs.getString('defaultStoreId')}');
+    String? cachedData = prefs.getString(
+      'offersFinal${prefs.getString('storeId') ?? prefs.getString('defaultStoreId')}',
+    );
     if (cachedData != null) {
       List<dynamic> jsonList = json.decode(cachedData);
-      return jsonList.map((json) => Product(
-        title: json['title'],
-        price: json['price'],
-        discount: json['discount'],
-        basePrice: json['basePrice'],
-        oldPrice: json['oldPrice'],
-        imageUrl: json['imageUrl'],
-        description: json['description'],
-        category: json['category'],
-        unit: json['unit'],
-        gtin: json['gtin'],
-      )).toList();
+      return jsonList
+          .map(
+            (json) => Product(
+              title: json['title'],
+              price: json['price'],
+              discount: json['discount'],
+              basePrice: json['basePrice'],
+              oldPrice: json['oldPrice'],
+              imageUrl: json['imageUrl'],
+              description: json['description'],
+              category: json['category'],
+              unit: json['unit'],
+              gtin: json['gtin'],
+            ),
+          )
+          .toList();
     }
     return [];
   }
@@ -499,7 +671,7 @@ class _OffersPageState extends State<OffersPage> {
     String sortBy = prefs.getString('sortOffersBy') ?? 'category';
     switch (sortBy) {
       case 'category':
-        if(currentFilter == FilterType.all) {
+        if (currentFilter == FilterType.all) {
           products = List<Product>.from(defaultSorting);
         }
         break;
@@ -510,22 +682,44 @@ class _OffersPageState extends State<OffersPage> {
         products.sort((a, b) => b.title.compareTo(a.title));
         break;
       case 'priceLowToHigh':
-        products.sort((a, b) => double.parse(a.price.replaceAll('€', '').replaceAll(',', '.')).compareTo(double.parse(b.price.replaceAll('€', '').replaceAll(',', '.'))));
+        products.sort(
+          (a, b) =>
+              double.parse(
+                a.price.replaceAll('€', '').replaceAll(',', '.'),
+              ).compareTo(
+                double.parse(b.price.replaceAll('€', '').replaceAll(',', '.')),
+              ),
+        );
         break;
       case 'priceHighToLow':
-        products.sort((a, b) => double.parse(b.price.replaceAll('€', '').replaceAll(',', '.')).compareTo(double.parse(a.price.replaceAll('€', '').replaceAll(',', '.'))));
+        products.sort(
+          (a, b) =>
+              double.parse(
+                b.price.replaceAll('€', '').replaceAll(',', '.'),
+              ).compareTo(
+                double.parse(a.price.replaceAll('€', '').replaceAll(',', '.')),
+              ),
+        );
         break;
       case 'discountHighToLow':
         products.sort((a, b) {
-          int discountA = int.parse(a.discount.replaceAll('%', '').replaceAll('-', '').trim());
-          int discountB = int.parse(b.discount.replaceAll('%', '').replaceAll('-', '').trim());
+          int discountA = int.parse(
+            a.discount.replaceAll('%', '').replaceAll('-', '').trim(),
+          );
+          int discountB = int.parse(
+            b.discount.replaceAll('%', '').replaceAll('-', '').trim(),
+          );
           return discountB.compareTo(discountA);
         });
         break;
       case 'discountLowToHigh':
         products.sort((a, b) {
-          int discountA = int.parse(a.discount.replaceAll('%', '').replaceAll('-', '').trim());
-          int discountB = int.parse(b.discount.replaceAll('%', '').replaceAll('-', '').trim());
+          int discountA = int.parse(
+            a.discount.replaceAll('%', '').replaceAll('-', '').trim(),
+          );
+          int discountB = int.parse(
+            b.discount.replaceAll('%', '').replaceAll('-', '').trim(),
+          );
           return discountA.compareTo(discountB);
         });
       default:
@@ -542,7 +736,9 @@ class _OffersPageState extends State<OffersPage> {
     }
 
     List<dynamic> storesData = json.decode(storesJson);
-    List<Store> stores = storesData.map((data) => Store.fromJson(data)).toList();
+    List<Store> stores = storesData
+        .map((data) => Store.fromJson(data))
+        .toList();
 
     Position position;
     try {
@@ -558,28 +754,36 @@ class _OffersPageState extends State<OffersPage> {
           throw Exception("Location permission denied");
         }
       }
-      
+
       if (permission == LocationPermission.deniedForever) {
         throw Exception("Location permission permanently denied");
       }
 
-      position = await Geolocator.getCurrentPosition(locationSettings:  LocationSettings(accuracy: LocationAccuracy.high));
+      position = await Geolocator.getCurrentPosition(
+        locationSettings: LocationSettings(accuracy: LocationAccuracy.high),
+      );
     } catch (e) {
       throw Exception("Failed to get location: $e");
     }
 
-    List<Store> localStores = List<Store>.from(stores).where((store) => store.country == WidgetsBinding.instance.platformDispatcher.locale.countryCode).toList();
+    List<Store> localStores = List<Store>.from(stores)
+        .where(
+          (store) =>
+              store.country ==
+              WidgetsBinding.instance.platformDispatcher.locale.countryCode,
+        )
+        .toList();
     localStores.sort((a, b) {
       double distanceA = a.getDistance(position.latitude, position.longitude);
       double distanceB = b.getDistance(position.latitude, position.longitude);
       return distanceA.compareTo(distanceB);
     });
 
-    if(localStores.isNotEmpty) {
+    if (localStores.isNotEmpty) {
       prefs.setString('selectedStore', json.encode(localStores.first));
       prefs.setString('storeId', localStores.first.storeId);
     }
-    
+
     String? selectedStoreJson = prefs.getString('selectedStore');
     if (selectedStoreJson != null) {
       Map<String, dynamic> storeMap = json.decode(selectedStoreJson);
@@ -602,7 +806,8 @@ class _OffersPageState extends State<OffersPage> {
     //prefs.setString('stores', "");
     await fetchStores();
     //prefs.setString('favoriteOffers', "[]");
-    if(prefs.getString('storeId') == null || prefs.getString('storeId')!.isEmpty) {
+    if (prefs.getString('storeId') == null ||
+        prefs.getString('storeId')!.isEmpty) {
       prefs.setString('storeId', prefs.getString('defaultStoreId') ?? '');
     }
     prefs.setString('storesLastFetched', DateTime.now().toIso8601String());
@@ -612,11 +817,7 @@ class _OffersPageState extends State<OffersPage> {
 Widget offerCard(Product product, BuildContext context) {
   return GestureDetector(
     onTap: () {
-      Navigator.pushNamed(
-        context, 
-        '/offerDetail',
-        arguments: product,
-      );
+      Navigator.pushNamed(context, '/offerDetail', arguments: product);
     },
     child: SizedBox(
       width: (MediaQuery.of(context).size.width - 20) / 2,
@@ -639,35 +840,50 @@ Widget offerCard(Product product, BuildContext context) {
                       ),
                       child: Center(
                         child: SizedBox(
-                          width: (MediaQuery.of(context).size.width - 20) / 2 - 20,
+                          width:
+                              (MediaQuery.of(context).size.width - 20) / 2 - 20,
                           height: MediaQuery.of(context).size.height * 0.2 - 20,
                           child: CachedNetworkImage(
                             imageUrl: product.imageUrl,
                             fit: BoxFit.contain,
-                            placeholder: (context, url) => CircularProgressIndicator(),
-                            errorWidget: (context, url, error) => Icon(Icons.broken_image, color: Colors.grey),
-                          )
+                            placeholder: (context, url) =>
+                                CircularProgressIndicator(),
+                            errorWidget: (context, url, error) =>
+                                Icon(Icons.broken_image, color: Colors.grey),
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-                if(int.parse(product.discount.replaceAll("%", "").replaceAll("-", "").trim()) > 0)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(5.0),
-                    ),
-                    child: Text(
-                      "-${product.discount}",
-                      style: const TextStyle(color: Colors.white, fontSize: 15),
+                if (int.parse(
+                      product.discount
+                          .replaceAll("%", "")
+                          .replaceAll("-", "")
+                          .trim(),
+                    ) >
+                    0)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(5.0),
+                      ),
+                      child: Text(
+                        "-${product.discount}",
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                        ),
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
             Padding(
@@ -687,7 +903,11 @@ Widget offerCard(Product product, BuildContext context) {
                     padding: const EdgeInsets.only(top: 23.0),
                     child: Text(
                       product.price,
-                      style: const TextStyle(color: Colors.amber, fontSize: 16, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.amber,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
@@ -726,16 +946,16 @@ class Product {
   });
 
   Product.fromJson(Map<String, dynamic> json)
-      : title = json['title'],
-        price = json['price'],
-        discount = json['discount'],
-        basePrice = json['basePrice'],
-        oldPrice = json['oldPrice'],
-        imageUrl = json['imageUrl'],
-        description = json['description'],
-        category = json['category'],
-        unit = json['unit'],
-        gtin = json['gtin'];
+    : title = json['title'],
+      price = json['price'],
+      discount = json['discount'],
+      basePrice = json['basePrice'],
+      oldPrice = json['oldPrice'],
+      imageUrl = json['imageUrl'],
+      description = json['description'],
+      category = json['category'],
+      unit = json['unit'],
+      gtin = json['gtin'];
 
   Map<String, dynamic> toJson() {
     return {

@@ -1,6 +1,7 @@
 /// Main entry point for the Kaufi Alert application
 /// Initializes essential services and defines the app's navigation structure
 library;
+
 import 'package:flutter/material.dart';
 import 'package:kaufi_alert_v2/pages/main_screen.dart';
 import 'package:kaufi_alert_v2/pages/offer_detail.dart';
@@ -13,20 +14,17 @@ import 'package:workmanager/workmanager.dart';
 void main() async {
   // Ensure Flutter binding is initialized before accessing native code
   WidgetsFlutterBinding.ensureInitialized();
-  
-  
+
   // Initialize the notification service for local notifications
   final notificationService = NotificationService();
   await notificationService.init();
-  
+
   // Request notification permissions (but no welcome notification)
   await notificationService.requestPermissions();
-  
+
   // Initialize Workmanager for background tasks
-  await Workmanager().initialize(
-    callbackDispatcher,
-  );
-  
+  await Workmanager().initialize(callbackDispatcher);
+
   // Schedule a daily background task to check for new offers
   // This will run even when the app is closed
   await Workmanager().registerPeriodicTask(
@@ -36,9 +34,10 @@ void main() async {
     constraints: Constraints(
       networkType: NetworkType.connected, // Only run when internet is available
     ),
-    existingWorkPolicy: ExistingPeriodicWorkPolicy.replace, // Replace existing tasks
+    existingWorkPolicy:
+        ExistingPeriodicWorkPolicy.replace, // Replace existing tasks
   );
-  
+
   runApp(const MainApp());
 }
 
@@ -54,7 +53,9 @@ class MainApp extends StatelessWidget {
       // Set app-wide theme properties
       theme: ThemeData(
         primarySwatch: Colors.amber,
-        scaffoldBackgroundColor: const Color(0xFF1f1415), // Dark background color
+        scaffoldBackgroundColor: const Color(
+          0xFF1f1415,
+        ), // Dark background color
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFF1f1415),
           iconTheme: IconThemeData(color: Colors.white),

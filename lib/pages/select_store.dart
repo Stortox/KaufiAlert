@@ -1,11 +1,12 @@
 /// Store Selection Screen
-/// 
+///
 /// This file implements the store selection interface where users can:
 /// - Find nearby Kaufland stores based on their current location
 /// - Search for stores by name
 /// - Toggle automatic store selection based on location
 /// - View store details including distance, address and opening hours
 library;
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -28,13 +29,13 @@ class SelectStore extends StatefulWidget {
 class _SelectStoreState extends State<SelectStore> {
   /// List of all available stores loaded from cache
   List<Store> stores = [];
-  
+
   /// Filtered list of stores to display in search results
   List<Store> filteredStores = [];
-  
+
   /// Flag to control visibility of the location explanation panel
   bool isExplanationVisible = false;
-  
+
   /// Flag to track whether automatic location-based store selection is enabled
   bool useCurrentLocation = false;
 
@@ -57,7 +58,8 @@ class _SelectStoreState extends State<SelectStore> {
     storeId: 'DE3283',
     name: 'Kaufland Dresden-Striesen-West',
     address: 'Borsbergstraße 35, Dresden',
-    openingHours: 'Mon: 09:00-20:00, Tue: 09:00-20:00, Wed: 09:00-20:00, Thu: 09:00-20:00, Fri: 09:00-20:00, Sat: 09:00-20:00, Sun: 0:00-0:00',
+    openingHours:
+        'Mon: 09:00-20:00, Tue: 09:00-20:00, Wed: 09:00-20:00, Thu: 09:00-20:00, Fri: 09:00-20:00, Sat: 09:00-20:00, Sun: 0:00-0:00',
     position: [13.7812778, 51.044094],
     country: 'DE',
   );
@@ -75,14 +77,14 @@ class _SelectStoreState extends State<SelectStore> {
     super.initState();
     // Get user location when screen initializes
     getUserPosition().then((position) {
-      if(mounted) {
+      if (mounted) {
         setState(() {
           userPosition = position;
         });
       }
     });
     // Load store data and prepare the filtered list
-    getClosestStores().then((_){
+    getClosestStores().then((_) {
       if (mounted) {
         setState(() {
           filteredStores = stores;
@@ -95,7 +97,10 @@ class _SelectStoreState extends State<SelectStore> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Select Store', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Select Store',
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: const Color(0xFF1f1415),
         centerTitle: true,
       ),
@@ -104,12 +109,20 @@ class _SelectStoreState extends State<SelectStore> {
           children: [
             // Section header for store selection
             Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text("Choose your preferred store", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold))),
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "Choose your preferred store",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                const SizedBox(height: 10),
+              ),
+            ),
+            const SizedBox(height: 10),
             ListView(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -117,80 +130,115 @@ class _SelectStoreState extends State<SelectStore> {
               children: [
                 Column(
                   children: [
-                  // Location-based store selection option
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: ListTile(
-                      title: const Text("Use current location", style: TextStyle(color: Colors.white)),
-                      leading: Container(
-                        width: 50,
-                        height: 50,
-                        decoration: BoxDecoration(
-                        color: const Color(0xFF412a2b),
-                        borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: const EdgeInsets.all(8),
-                        child: const Icon(Icons.location_on_outlined, color: Colors.white),
-                      ),
-                      trailing: const Icon(Icons.info_outline, color: Colors.white),
-                      onTap: () {
-                        // Toggle explanation visibility when tapped
-                        setState(() {
-                          isExplanationVisible = !isExplanationVisible;
-                        });
-                      },
-                    ),
-                  ),
-                  // Expandable explanation section with toggle switch
-                  if (isExplanationVisible)
+                    // Location-based store selection option
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              "Use your current location to automatically find the nearest store. Only available in supported areas.",
-                              style: TextStyle(color: Colors.white70, fontSize: 12),
-                            ),
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: ListTile(
+                        title: const Text(
+                          "Use current location",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        leading: Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF412a2b),
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          // Toggle switch for enabling/disabling automatic store selection
-                          Switch(
-                            value: prefs.getBool('dynamicStoreEnabled') ?? false,
-                            onChanged: (value) {
-                              setState(() {
-                                useCurrentLocation = value;
-                              });
-                              // Save user preference
-                              prefs.setBool('dynamicStoreEnabled', value);
-                            },
-                            activeThumbColor: Theme.of(context).primaryColor,
+                          padding: const EdgeInsets.all(8),
+                          child: const Icon(
+                            Icons.location_on_outlined,
+                            color: Colors.white,
                           ),
-                        ],
+                        ),
+                        trailing: const Icon(
+                          Icons.info_outline,
+                          color: Colors.white,
+                        ),
+                        onTap: () {
+                          // Toggle explanation visibility when tapped
+                          setState(() {
+                            isExplanationVisible = !isExplanationVisible;
+                          });
+                        },
                       ),
                     ),
+                    // Expandable explanation section with toggle switch
+                    if (isExplanationVisible)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0,
+                          vertical: 8.0,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                "Use your current location to automatically find the nearest store. Only available in supported areas.",
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                            // Toggle switch for enabling/disabling automatic store selection
+                            Switch(
+                              value:
+                                  prefs.getBool('dynamicStoreEnabled') ?? false,
+                              onChanged: (value) {
+                                setState(() {
+                                  useCurrentLocation = value;
+                                });
+                                // Save user preference
+                                prefs.setBool('dynamicStoreEnabled', value);
+                              },
+                              activeThumbColor: Theme.of(context).primaryColor,
+                            ),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
                 // Store search option
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
                   child: ListTile(
-                    title: Text("Search for a store", style: TextStyle(color: filteredStores.isNotEmpty ? Colors.white : Colors.grey)),
+                    title: Text(
+                      "Search for a store",
+                      style: TextStyle(
+                        color: filteredStores.isNotEmpty
+                            ? Colors.white
+                            : Colors.grey,
+                      ),
+                    ),
                     leading: Container(
                       width: 50,
                       height: 50,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF412a2b), // Background color for the icon
-                        borderRadius: BorderRadius.circular(8), // Rounded corners
+                        color: const Color(
+                          0xFF412a2b,
+                        ), // Background color for the icon
+                        borderRadius: BorderRadius.circular(
+                          8,
+                        ), // Rounded corners
                       ),
-                      padding: const EdgeInsets.all(8), // Padding inside the container
+                      padding: const EdgeInsets.all(
+                        8,
+                      ), // Padding inside the container
                       child: const Icon(Icons.search, color: Colors.white),
                     ),
                     onTap: () => {
                       // Save filtered stores to preferences for search screen
-                      prefs.setString('filteredStores', json.encode(filteredStores)),
+                      prefs.setString(
+                        'filteredStores',
+                        json.encode(filteredStores),
+                      ),
                       // Navigate to search screen
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => SearchStore())),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => SearchStore()),
+                      ),
                     },
                     // Disable search if no stores are available
                     enabled: filteredStores.isNotEmpty,
@@ -204,41 +252,59 @@ class _SelectStoreState extends State<SelectStore> {
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text("Nearby stores", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                child: Text(
+                  "Nearby stores",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 10),
             // Display loading indicator or nearby stores list
             userPosition.latitude == 0.0 && userPosition.longitude == 0.0
-              ? const CircularProgressIndicator()
-              : FutureBuilder<List<Store>>(
-              future: getClosestStores(),
-              builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const CircularProgressIndicator();
-              } else if (snapshot.hasError) {
-                return Text('Error: ${snapshot.error}', style: TextStyle(color: Colors.white));
-              } else {
-                if(snapshot.data == null || snapshot.data!.isEmpty) {
-                  return const Text('No stores found', style: TextStyle(color: Colors.white));
-                  } else {
-                    // List of nearby stores with distance information
-                    return SizedBox(
-                      width: MediaQuery.of(context).size.width - 10,
-                      height: MediaQuery.of(context).size.height - 400,
-                      child: ListView.builder(
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: snapshot.data!.length,
-                        itemBuilder: (context, index) {
-                          Store store = snapshot.data![index];
-                          return buildStoreTile(store, userPosition, context, prefs);
-                        },
-                      ),
-                    );
-                  }
-                }
-              },
-            )
+                ? const CircularProgressIndicator()
+                : FutureBuilder<List<Store>>(
+                    future: getClosestStores(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const CircularProgressIndicator();
+                      } else if (snapshot.hasError) {
+                        return Text(
+                          'Error: ${snapshot.error}',
+                          style: TextStyle(color: Colors.white),
+                        );
+                      } else {
+                        if (snapshot.data == null || snapshot.data!.isEmpty) {
+                          return const Text(
+                            'No stores found',
+                            style: TextStyle(color: Colors.white),
+                          );
+                        } else {
+                          // List of nearby stores with distance information
+                          return SizedBox(
+                            width: MediaQuery.of(context).size.width - 10,
+                            height: MediaQuery.of(context).size.height - 400,
+                            child: ListView.builder(
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: snapshot.data!.length,
+                              itemBuilder: (context, index) {
+                                Store store = snapshot.data![index];
+                                return buildStoreTile(
+                                  store,
+                                  userPosition,
+                                  context,
+                                  prefs,
+                                );
+                              },
+                            ),
+                          );
+                        }
+                      }
+                    },
+                  ),
           ],
         ),
       ),
@@ -246,7 +312,7 @@ class _SelectStoreState extends State<SelectStore> {
   }
 
   /// Retrieves the user's current geographic position
-  /// 
+  ///
   /// Handles location permission requests and service availability checks.
   /// Returns a default position if location services are unavailable.
   Future<Position> getUserPosition() async {
@@ -258,7 +324,11 @@ class _SelectStoreState extends State<SelectStore> {
           permission = await Geolocator.requestPermission();
         } else if (permission != LocationPermission.denied) {
           try {
-            return await Geolocator.getCurrentPosition(locationSettings: LocationSettings(accuracy: LocationAccuracy.high));
+            return await Geolocator.getCurrentPosition(
+              locationSettings: LocationSettings(
+                accuracy: LocationAccuracy.high,
+              ),
+            );
           } catch (e) {
             print("Error getting user position: $e");
           }
@@ -281,7 +351,7 @@ class _SelectStoreState extends State<SelectStore> {
   }
 
   /// Gets the closest stores to the user's current location
-  /// 
+  ///
   /// Loads stores from cache, sorts them by distance to user,
   /// and returns the three closest stores in the user's country.
   Future<List<Store>> getClosestStores() async {
@@ -291,7 +361,7 @@ class _SelectStoreState extends State<SelectStore> {
       // Parse store data from cache
       List<dynamic> jsonList = json.decode(cachedData);
       stores = jsonList.map((json) => Store.fromJson(json)).toList();
-      
+
       // Default position in case location services are unavailable
       Position position = Position(
         latitude: 0.0,
@@ -305,7 +375,7 @@ class _SelectStoreState extends State<SelectStore> {
         altitudeAccuracy: 0.0,
         headingAccuracy: 0.0,
       );
-      
+
       // Try to get the user's current location
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       LocationPermission permission = await Geolocator.checkPermission();
@@ -315,24 +385,36 @@ class _SelectStoreState extends State<SelectStore> {
             permission = await Geolocator.requestPermission();
           } else if (permission != LocationPermission.denied) {
             try {
-              position = await Geolocator.getCurrentPosition(locationSettings: LocationSettings(accuracy: LocationAccuracy.high));
+              position = await Geolocator.getCurrentPosition(
+                locationSettings: LocationSettings(
+                  accuracy: LocationAccuracy.high,
+                ),
+              );
             } catch (e) {
               print("Error getting user position: $e");
             }
           }
         }
       }
-      
+
       // Use the position to sort stores by distance
       double userLatitude = position.latitude;
       double userLongitude = position.longitude;
-      
+
       // Filter stores to only include those in user's country and not the currently selected store
-      List<Store> localStores = List<Store>.from(stores).where((store) => 
-        store.country == WidgetsBinding.instance.platformDispatcher.locale.countryCode && 
-        store.storeId != prefs.getString('storeId')
-      ).toList();
-      
+      List<Store> localStores = List<Store>.from(stores)
+          .where(
+            (store) =>
+                store.country ==
+                    WidgetsBinding
+                        .instance
+                        .platformDispatcher
+                        .locale
+                        .countryCode &&
+                store.storeId != prefs.getString('storeId'),
+          )
+          .toList();
+
       // Sort by distance (closest first)
       localStores.sort((a, b) {
         double distanceA = a.getDistance(userLatitude, userLongitude);
@@ -348,10 +430,15 @@ class _SelectStoreState extends State<SelectStore> {
 }
 
 /// Builds a ListTile widget to display store information
-/// 
+///
 /// Creates a tappable store item showing name, address, distance from user,
 /// and today's opening hours. Selecting a store saves it as the active store.
-Widget buildStoreTile(Store store, Position? userPosition, BuildContext context, SharedPreferences prefs) {
+Widget buildStoreTile(
+  Store store,
+  Position? userPosition,
+  BuildContext context,
+  SharedPreferences prefs,
+) {
   return GestureDetector(
     onTap: () async {
       // Save selected store to preferences when tapped
@@ -363,7 +450,14 @@ Widget buildStoreTile(Store store, Position? userPosition, BuildContext context,
     child: Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: ListTile(
-        title: Text(store.name, style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+        title: Text(
+          store.name,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -373,17 +467,29 @@ Widget buildStoreTile(Store store, Position? userPosition, BuildContext context,
                 // Store address with overflow handling
                 SizedBox(
                   width: MediaQuery.of(context).size.width - 200,
-                  child: Text(store.address, style: TextStyle(color: Colors.white, fontSize: 12), overflow: TextOverflow.ellipsis,),
+                  child: Text(
+                    store.address,
+                    style: TextStyle(color: Colors.white, fontSize: 12),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 // Distance from user's location
-                userPosition != null ? Text(
-                  "${store.getDistance(userPosition.latitude, userPosition.longitude).toStringAsFixed(2)} km",
-                  style: TextStyle(color: Colors.white, fontSize: 12),
-                ) : Text("Distance not available", style: TextStyle(color: Colors.white, fontSize: 12)),
+                userPosition != null
+                    ? Text(
+                        "${store.getDistance(userPosition.latitude, userPosition.longitude).toStringAsFixed(2)} km",
+                        style: TextStyle(color: Colors.white, fontSize: 12),
+                      )
+                    : Text(
+                        "Distance not available",
+                        style: TextStyle(color: Colors.white, fontSize: 12),
+                      ),
               ],
             ),
             // Today's opening hours
-            Text(store.getOpeningHoursForToday(store), style: TextStyle(color: Colors.white, fontSize: 11)),
+            Text(
+              store.getOpeningHoursForToday(store),
+              style: TextStyle(color: Colors.white, fontSize: 11),
+            ),
           ],
         ),
         leading: Container(
