@@ -1,7 +1,7 @@
-name: kaufi_alert_v2
-description: "A new Flutter project."
+name: kaufi_alert
+description: "Kaufi Alert is an unofficial mobile application that helps users track and discover current offers at Kaufland stores."
 publish_to: 'none'
-version: 0.1.0
+version: 1.1.0+3
 
 environment:
   sdk: ^3.8.1
