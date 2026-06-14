@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kaufi_alert_v2/models/product.dart';
-import 'package:kaufi_alert_v2/models/store.dart';
+import 'package:kaufi_alert/models/product.dart';
+import 'package:kaufi_alert/models/store.dart';
 
 Product _product({String title = 'Apfel', String imageUrl = 'a.png'}) => Product(
   title: title,

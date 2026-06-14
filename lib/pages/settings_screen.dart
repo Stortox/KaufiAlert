@@ -5,7 +5,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:kaufi_alert_v2/pages/select_store.dart';
+import 'package:kaufi_alert/pages/select_store.dart';
 import 'package:workmanager/workmanager.dart';
 
 import '../models/store.dart';

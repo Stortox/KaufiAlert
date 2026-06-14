@@ -8,7 +8,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:kaufi_alert_v2/pages/search_store.dart';
+import 'package:kaufi_alert/pages/search_store.dart';
 
 import '../models/store.dart';
 import '../services/location_service.dart';

@@ -3,13 +3,13 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:kaufi_alert_v2/models/product.dart';
-import 'package:kaufi_alert_v2/pages/main_screen.dart';
-import 'package:kaufi_alert_v2/pages/offer_detail.dart';
-import 'package:kaufi_alert_v2/pages/select_store.dart';
-import 'package:kaufi_alert_v2/pages/settings_screen.dart';
-import 'package:kaufi_alert_v2/services/notification_service.dart';
-import 'package:kaufi_alert_v2/services/preferences_service.dart';
+import 'package:kaufi_alert/models/product.dart';
+import 'package:kaufi_alert/pages/main_screen.dart';
+import 'package:kaufi_alert/pages/offer_detail.dart';
+import 'package:kaufi_alert/pages/select_store.dart';
+import 'package:kaufi_alert/pages/settings_screen.dart';
+import 'package:kaufi_alert/services/notification_service.dart';
+import 'package:kaufi_alert/services/preferences_service.dart';
 import 'package:workmanager/workmanager.dart';
 
 void main() async {
