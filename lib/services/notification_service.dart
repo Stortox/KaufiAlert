@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
+
+import 'preferences_service.dart';
 
 /// NotificationService
 ///
@@ -18,6 +20,11 @@ class NotificationService {
   /// The Flutter Local Notifications Plugin for cross-platform notifications
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
+
+  static const String _channelId = 'kaufland_offers';
+  static const String _channelName = 'Kaufland Offers';
+  static const String _channelDescription =
+      'Notifications for new Kaufland offers';
 
   /// Initializes the notification service
   ///
@@ -52,6 +59,22 @@ class NotificationService {
         // Additional navigation could be implemented here if necessary
       },
     );
+
+    // Create the Android channel up front. Android caches a channel's
+    // importance the first time it is created, so doing this explicitly (with
+    // high importance) avoids it being stuck at a lower importance later.
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.createNotificationChannel(
+          const AndroidNotificationChannel(
+            _channelId,
+            _channelName,
+            description: _channelDescription,
+            importance: Importance.high,
+          ),
+        );
   }
 
   /// Requests notification permissions from the user
@@ -92,8 +115,8 @@ class NotificationService {
     if (Platform.isIOS) {
       // iOS doesn't provide a direct API for status checking,
       // so we use the stored setting
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getBool('notificationsEnabled') ?? false;
+      await PreferencesService.instance.init();
+      return PreferencesService.instance.notificationsEnabled;
     } else if (Platform.isAndroid) {
       // Check Android permission status via permission_handler
       final status = await Permission.notification.status;
@@ -116,7 +139,7 @@ class NotificationService {
     if (!hasPermission) {
       hasPermission = await requestPermissions();
       if (!hasPermission) {
-        print('Notification permissions denied');
+        debugPrint('Notification permissions denied');
         return;
       }
     }
@@ -124,10 +147,9 @@ class NotificationService {
     // Android-specific notification details
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
-          'kaufland_offers', // Channel ID
-          'Kaufland Offers', // Channel name
-          channelDescription:
-              'Notifications for new Kaufland offers', // Channel description
+          _channelId,
+          _channelName,
+          channelDescription: _channelDescription,
           importance: Importance.high, // High priority - appears as pop-up
           priority: Priority.high, // High priority for the notification list
         );
@@ -165,14 +187,12 @@ class NotificationService {
   ///   [bool] True if new offers are likely available, otherwise False
   Future<bool> checkForNewOffers() async {
     // Load current store ID from SharedPreferences
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String storeId =
-        prefs.getString('storeId') ??
-        prefs.getString('defaultStoreId') ??
-        'DE3940';
+    final prefs = PreferencesService.instance;
+    await prefs.init();
+    final storeId = prefs.effectiveStoreId;
 
     // Get date of last stored offers
-    String? offersDateStr = prefs.getString('offersDate$storeId');
+    String? offersDateStr = prefs.offersDate(storeId);
 
     // If no offers have been stored yet, new offers are available
     if (offersDateStr == null || offersDateStr.isEmpty) {

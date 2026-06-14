@@ -3,17 +3,21 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:kaufi_alert_v2/models/product.dart';
 import 'package:kaufi_alert_v2/pages/main_screen.dart';
 import 'package:kaufi_alert_v2/pages/offer_detail.dart';
-import 'package:kaufi_alert_v2/pages/offers_page.dart';
 import 'package:kaufi_alert_v2/pages/select_store.dart';
 import 'package:kaufi_alert_v2/pages/settings_screen.dart';
 import 'package:kaufi_alert_v2/services/notification_service.dart';
+import 'package:kaufi_alert_v2/services/preferences_service.dart';
 import 'package:workmanager/workmanager.dart';
 
 void main() async {
   // Ensure Flutter binding is initialized before accessing native code
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize shared preferences once for the whole app
+  await PreferencesService.instance.init();
 
   // Initialize the notification service for local notifications
   final notificationService = NotificationService();
@@ -25,18 +29,22 @@ void main() async {
   // Initialize Workmanager for background tasks
   await Workmanager().initialize(callbackDispatcher);
 
-  // Schedule a daily background task to check for new offers
-  // This will run even when the app is closed
-  await Workmanager().registerPeriodicTask(
-    'checkOffers',
-    'checkNewOffers',
-    frequency: const Duration(hours: 24), // Daily check
-    constraints: Constraints(
-      networkType: NetworkType.connected, // Only run when internet is available
-    ),
-    existingWorkPolicy:
-        ExistingPeriodicWorkPolicy.replace, // Replace existing tasks
-  );
+  // Schedule a daily background task to check for new offers, but only if the
+  // user has notifications enabled. We use `keep` (not `replace`) so that an
+  // already-scheduled task keeps its existing interval: registering with
+  // `replace` on every launch restarts the 24h timer, meaning the task never
+  // fires for anyone who opens the app within a day.
+  if (PreferencesService.instance.notificationsEnabled) {
+    await Workmanager().registerPeriodicTask(
+      'checkOffers',
+      'checkNewOffers',
+      frequency: const Duration(hours: 24), // Daily check
+      constraints: Constraints(
+        networkType: NetworkType.connected, // Only run with internet
+      ),
+      existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
+    );
+  }
 
   runApp(const MainApp());
 }
